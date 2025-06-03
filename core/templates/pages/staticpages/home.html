@@ -5,5 +5,292 @@
 {% endblock %}
 
 {% block content %}
+    <!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .text-shadow {
+        text-shadow: 0px 4px 16px #ffffff;
+      }
+      .gradient-border {
+        position: relative;
+      }
+      .gradient-border::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        padding: 2px;
+        border-radius: 23px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.29) 0%, rgba(153, 153, 153, 0.29) 100%);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+      }
+    }
+  </style>
+</head>
+<body class="bg-[#0f0203]">
+  <div class="container mx-auto px-4 max-w-screen-xl">
+    <!-- Navigation -->
+    <nav class="flex flex-col md:flex-row justify-between items-center py-4">
+      <!-- Logo -->
+      <div class="text-shadow mb-4 md:mb-0">
+        <div class="flex items-center">
+          <div class="font-['Italiana'] font-normal text-[32px] md:text-[48px] text-white">Porn</div>
+          <div class="font-['Irish_Grover'] font-normal text-[40px] md:text-[55px] text-[#a21892] ml-2 stroke-[1px] stroke-[#ff4b4b] blur-[1px]">Flixe</div>
+        </div>
+      </div>
+      
+      <!-- Navigation Pills -->
+      <div class="hidden md:flex items-center gap-2">
+        <div class="inline-flex items-center justify-center gap-2 p-2 bg-[#f5f5f5] rounded-full">
+          <div class="text-[#b50272] font-['Inter-Regular'] text-base leading-4 whitespace-nowrap">Home</div>
+        </div>
+        <div class="inline-flex items-center justify-center gap-2 p-2 rounded-lg">
+          <div class="text-white font-inter text-base leading-4 whitespace-nowrap">Seri</div>
+        </div>
+        <div class="inline-flex items-center justify-center gap-2 p-2 rounded-lg">
+          <div class="text-white font-inter text-base leading-4 whitespace-nowrap">Film</div>
+        </div>
+        <div class="inline-flex items-center justify-center gap-2 p-2 rounded-lg">
+          <div class="text-white font-inter text-base leading-4 whitespace-nowrap">Short Video</div>
+        </div>
+        <div class="inline-flex items-center justify-center gap-2 p-2 rounded-lg">
+          <div class="text-white font-inter text-base leading-4 whitespace-nowrap">Photo</div>
+        </div>
+        <div class="inline-flex items-center justify-center gap-2 p-2 rounded-lg">
+          <div class="text-white font-inter text-base leading-4 whitespace-nowrap">Genre</div>
+        </div>
+      </div>
+      
+      <!-- Search and User Profile -->
+      <div class="flex items-center gap-4 mt-4 md:mt-0">
+        <div class="flex items-center gap-2 p-3 px-4 bg-white rounded-full overflow-hidden border border-[#d9d9d9] w-full md:w-[241px]">
+          <input class="flex-1 font-inter text-base text-gray-900 focus:outline-none" type="text" placeholder="Search">
+          <img class="w-4 h-4" src="img/x.svg" />
+        </div>
+        
+        <div class="relative w-[133px] h-[39px] rounded-[33px] hidden md:block">
+          <div class="absolute w-full h-full top-0 left-0 bg-[#a21892] rounded-[33px] blur-[0.5px]"></div>
+          <div class="absolute w-9 h-9 top-[2px] left-[2px] bg-black rounded-full"></div>
+          {% if user.is_authenticated %}
+     
+          <div class="absolute w-[31px] text-white flex items-center justify-center h-[31px] top-[4px] left-[4px] bg-black rounded-full">
+            {{ user.username|slice:"0:1" }}
+          </div>
+          <div class="absolute top-[11px] left-[50px] font-inter text-base text-white whitespace-nowrap">{{ user.username }}</div>
+          {% else %}
+          <img class="absolute w-[31px] h-[31px] top-[4px] left-[4px]" src="img/user.svg" />
+          <div class="absolute top-[11px] left-[50px] font-inter text-base text-white whitespace-nowrap">joen Do</div>
+          {% endif %}
+        </div>
+      </div>
+
+ 
+    </nav>
     
+    <!-- Hero Section -->
+    <div class="gradient-border w-full h-[300px] md:h-[475px] mt-8 bg-[#ffffff63] rounded-[23px] overflow-hidden border-none">
+      <div class="relative w-full h-full bg-[url('./img/image-2-2.png')] bg-cover bg-center">
+        <p class="absolute w-full px-4 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-['Italiana'] font-normal text-white text-[32px] md:text-[64px] lg:text-[88px] text-center leading-tight">La Verite &amp; La Luxure De Mes Voisin</p>
+        
+        <!-- Dots Navigation -->
+        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
+          <div class="w-4 h-4 bg-[#ba0fb49e] rounded-full border-none"></div>
+          <div class="w-4 h-4 bg-white rounded-full border-none"></div>
+          <div class="w-4 h-4 bg-white rounded-full border-none"></div>
+          <div class="w-4 h-4 bg-white rounded-full border-none"></div>
+          <div class="w-4 h-4 bg-white rounded-full border-none"></div>
+          <div class="w-4 h-4 bg-white rounded-full border-none"></div>
+        </div>
+        
+        <!-- Info/Play Buttons -->
+        <div class="absolute bottom-4 right-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-[#a21892] flex items-center justify-center">
+          <img class="w-6 h-6 md:w-8 md:h-8" src="img/play.svg" />
+        </div>
+      </div>
+    </div>
+    
+    <!-- Content Sections -->
+    <div class="mt-16">
+      <!-- Films et Series Section -->
+      <div class="mb-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8">
+          <div>
+            <h2 class="font-['Kantumruy'] font-normal text-white text-[32px] md:text-[44px] leading-tight">Film et Series</h2>
+            <p class="font-['Kantumruy'] font-normal text-white/60 text-[18px] md:text-[26px] mt-2">
+              Sexy photos · Modele sexy · Charme · Femmes sensuelles · Photo gra
+            </p>
+          </div>
+          <div class="flex items-center gap-2 mt-4 md:mt-0">
+            <div class="font-['Kantumruy'] font-normal text-white text-[20px] md:text-[26px]">Day</div>
+            <div class="w-9 h-9 bg-[url('./img/filter.svg')] bg-cover"></div>
+          </div>
+        </div>
+        
+        <!-- First Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <!-- Item 1 -->
+          <div class="relative">
+            <div class="w-full h-[150px] md:h-[200px] bg-[url('./img/image.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">Film</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+            <p class="font-['Kantumruy'] font-normal text-white text-[12px]">89 k vues il y a 1 mois</p>
+          </div>
+          
+          <!-- Item 2 -->
+          <div class="relative">
+            <div class="w-full h-[150px] md:h-[200px] bg-[url('./img/image-8.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">Film</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+            <p class="font-['Kantumruy'] font-normal text-white text-[12px]">89 k vues il y a 1 mois</p>
+          </div>
+          
+          <!-- Item 3 -->
+          <div class="relative">
+            <div class="w-full h-[150px] md:h-[200px] bg-[url('./img/image-11.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">Film</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+            <p class="font-['Kantumruy'] font-normal text-white text-[12px]">89 k vues il y a 1 mois</p>
+          </div>
+        </div>
+        
+        <!-- Second Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Item 1 -->
+          <div class="relative">
+            <div class="w-full h-[150px] md:h-[200px] bg-[url('./img/image-9.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">Film</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+            <p class="font-['Kantumruy'] font-normal text-white text-[12px]">89 k vues il y a 1 mois</p>
+          </div>
+          
+          <!-- Item 2 -->
+          <div class="relative">
+            <div class="w-full h-[150px] md:h-[200px] bg-[url('./img/image-12.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">Serie</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+            <p class="font-['Kantumruy'] font-normal text-white text-[12px]">89 k vues il y a 1 mois</p>
+          </div>
+          
+          <!-- Item 3 -->
+          <div class="relative">
+            <div class="w-full h-[150px] md:h-[200px] bg-[url('./img/image-14.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">Film</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+            <p class="font-['Kantumruy'] font-normal text-white text-[12px]">89 k vues il y a 1 mois</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Short Video Section -->
+      <div class="mb-12">
+        <div class="mb-8">
+          <h2 class="font-['Kantumruy'] font-normal text-white text-[32px] md:text-[44px] leading-tight">Short Video</h2>
+          <p class="font-['Kantumruy'] font-normal text-white/60 text-[18px] md:text-[26px] mt-2">
+            Sexy photos · Modele sexy · Charme · Femmes sensuelles · Photo gra
+          </p>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- Item 1 -->
+          <div class="relative">
+            <div class="w-full h-[200px] md:h-[250px] bg-[url('./img/image-10.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">23k vue</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+          </div>
+          
+          <!-- Item 2 -->
+          <div class="relative">
+            <div class="w-full h-[200px] md:h-[250px] bg-[url('./img/image-3.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">23k vue</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+          </div>
+          
+          <!-- Item 3 -->
+          <div class="relative">
+            <div class="w-full h-[200px] md:h-[250px] bg-[url('./img/image-13.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">23k vue</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+          </div>
+          
+          <!-- Item 4 -->
+          <div class="relative">
+            <div class="w-full h-[200px] md:h-[250px] bg-[url('./img/image-5.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">23k vue</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+          </div>
+        </div>
+        
+        <!-- Second Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+          <!-- Item 1 -->
+          <div class="relative">
+            <div class="w-full h-[200px] md:h-[250px] bg-[url('./img/image-7.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">23k vue</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+          </div>
+          
+          <!-- Item 2 -->
+          <div class="relative">
+            <div class="w-full h-[200px] md:h-[250px] bg-[url('./img/image-2.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">23k vue</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+          </div>
+          
+          <!-- Item 3 -->
+          <div class="relative">
+            <div class="w-full h-[200px] md:h-[250px] bg-[url('./img/image-4.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">23k vue</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+          </div>
+          
+          <!-- Item 4 -->
+          <div class="relative">
+            <div class="w-full h-[200px] md:h-[250px] bg-[url('./img/image-6.png')] bg-cover bg-center rounded-lg overflow-hidden">
+              <div class="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded-full text-white text-sm">23k vue</div>
+            </div>
+            <h3 class="font-['Italiana'] font-normal text-white text-[24px] md:text-[32px] mt-2">Sexy $$$</h3>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Photo Section -->
+      <div class="mb-12">
+        <div class="mb-8">
+          <h2 class="font-['Kantumruy'] font-normal text-white text-[32px] md:text-[44px] leading-tight">Phot</h2>
+          <p class="font-['Kantumruy'] font-normal text-white/60 text-[18px] md:text-[26px] mt-2">
+            Sexy photos · Modele sexy · Charme · Femmes sensuelles · Photo gra
+          </p>
+        </div>
+        
+        <!-- Photo grid would go here with similar structure -->
+      </div>
+    </div>
+    
+    <!-- Footer Image -->
+    <div class="w-full mt-12">
+      <img class="w-full" src="img/group-36.png" />
+    </div>
+  </div>
+</body>
+</html>
 {% endblock %}

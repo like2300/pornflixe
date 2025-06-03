@@ -26,11 +26,12 @@ INSTALLED_APPS = [
     'core',
     'allauth',
     'allauth.account',
+    'widget_tweaks',
 
     # Optional -- requires install using `django-allauth[socialaccount]`.
     'allauth.socialaccount',
     # ... include the providers you want to enable:
-    'allauth.socialaccount.providers.google', 
+    'allauth.socialaccount.providers.google',  
 ]
 
 MIDDLEWARE = [
@@ -43,7 +44,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     #  CUSTOM AUTH FRO ALLAUTH
-     "allauth.account.middleware.AccountMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = 'myauth.urls'
@@ -77,8 +78,14 @@ SOCIALACCOUNT_PROVIDERS = {
         'APP': {
             'client_id':  config('CLIENT_ID',default='123456789.apps.googleusercontent.com'),
             'secret': config('CLIENT_SECRET' ,default='123fDJHBFBU456789'),
-            'key': ''
+            'key': '',
+            'redirect_uris': [
+                'http://localhost:8000/accounts/google/login/callback/',
+                'http://127.0.0.1:8000/accounts/google/login/callback/',
+                # Ajoutez ici votre domaine de production quand nécessaire
+            ],
         },
+        
         # Ajoutez cette ligne :
          'OAUTH_PKCE_ENABLED': config('OAUTH_PKCE_ENABLED', default=True, cast=bool),
     }
@@ -168,7 +175,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
 STATIC_DIR = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

@@ -8,16 +8,7 @@
     <script src="http://cdn.tailwindcss.com"></script>
 </head>
 <body>
-    <h1>Home</h1>
-    <p>This is the home page.</p>  
-    {% if user.is_authenticated %}
-        <p>You are logged in as <strong class="text-blue-500">{{ user.username }}</strong>.</p>
-        {% comment %} logged in user can see the logout link here {% endcomment %}
-        <p>You can <a class="text-blue-500" href="/accounts/logout/">logout</a> to see the logout page.</p>
-    {% else %}
-        <p>You are not logged in.</p>
-        <p>You can <a href="/accounts/" class="text-blue-500">login</a> or <a href="/accounts/signup/" class="text-blue-500">signup</a> to see the login and signup pages.</p>
-    {% endif %}
+ 
     {% block content %}
 
     {% endblock %}

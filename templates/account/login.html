@@ -1,126 +1,139 @@
 {% extends "account/base_entrance.html" %}
 {% load i18n %}
-{% load allauth account %}
+{% load allauth account socialaccount %}
+{% load widget_tweaks %}
+
 {% block head_title %}
     {% trans "Sign In" %}
 {% endblock head_title %}
+
+{% block extra_head %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style type="text/tailwindcss">
+      @layer components {
+        .input-field {
+          @apply w-full py-3 px-5 rounded-xl border-4 border-fuchsia-500 bg-transparent text-white placeholder-white/70;
+        }
+        .btn-primary {
+          @apply w-full py-3 rounded-xl bg-[#a21892] text-white text-2xl font-normal hover:bg-fuchsia-800 transition-colors;
+        }
+        .password-toggle {
+          @apply absolute right-4 top-1/2 -translate-y-1/2 text-white text-xl cursor-pointer;
+        }
+      }
+    </style>
+{% endblock %}
+
 {% block content %}
+<div class="relative w-full overflow-hidden p-5">
+    <!-- Background Image -->
+    <img src="/static/img/image.png" alt="Background" class="absolute top-0 left-0 inset-0 w-full h-full object-cover" />
+    
+    <!-- Background Overlay -->
+    <div class="absolute inset-0 bg-black/50"></div>
 
-<div class="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50">
-    <div class="sm:mx-auto sm:w-full sm:max-w-md">
-        {% element h1 %}
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                {% trans "Sign In 1" %}
-            </h2>
-        {% endelement %}
-    </div>
+    <!-- Content Container -->
+    <div class="relative z-10 flex flex-col items-center h-screen pt-5 px-4">
+        <!-- Logo -->
+        <div class="flex flex-col items-center mb-12">
+            <div class="relative flex items-center justify-center w-[205px] h-[66px]">
+                <span class="text-white text-5xl font-normal font-['Italiana']">Flixe</span>
+                <span class="text-[#9d038b] text-5xl font-bold font-['Irish_Grover'] ml-2" style="text-shadow: 0 0 1px #ff4b4b, 0 0 1px #ff4b4b;">Porn</span>
+            </div>
+            <p class="text-white text-center text-lg mt-4 max-w-lg">
+                Sexy photos · Modele sexy · Charme · Femmes sensuelles  
+            </p>
+        </div>
 
-    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-            {% if not SOCIALACCOUNT_ONLY %}
-                {% setvar link %}
-                    <a href="{{ signup_url }}" class="font-medium text-indigo-600 hover:text-indigo-500">
-                    {% endsetvar %}
-                    {% setvar end_link %}
-                    </a>
-                {% endsetvar %}
-                {% element p %}
-                    <p class="mb-6 text-sm text-gray-600 text-center">
-                        {% blocktranslate %}If you have not created an account yet, then please {{ link }}sign up{{ end_link }} first.{% endblocktranslate %}
-                    </p>
-                {% endelement %}
+        <!-- Login Form -->
+        <div class="w-full max-w-md space-y-6">
+            {% url 'account_login' as login_url %}
+            <form method="post" action="{{ login_url }}" class="space-y-6">
+                {% csrf_token %}
                 
-                {% url 'account_login' as login_url %}
-                {% element form form=form method="post" action=login_url tags="entrance,login" %}
-                    {% slot body %}
-                        {% csrf_token %}
-                        <div class="space-y-6">
-                            {% element fields form=form unlabeled=True %}
-                                <div class="space-y-4">
-                                    {% for field in form %}
-                                        <div>
-                                            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                                {{ field.label }}
-                                            </label>
-                                            <input 
-                                                type="{{ field.field.widget.input_type }}" 
-                                                name="{{ field.html_name }}" 
-                                                id="{{ field.auto_id }}" 
-                                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                                {% if field.value %}value="{{ field.value }}"{% endif %}
-                                                {% if field.field.required %}required{% endif %}
-                                            >
-                                            {% if field.errors %}
-                                                <p class="mt-2 text-sm text-red-600">{{ field.errors|join:", " }}</p>
-                                            {% endif %}
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            {% endelement %}
-                            {{ redirect_field }}
-                        </div>
-                    {% endslot %}
-                    {% slot actions %}
-                        <div class="mt-6">
-                            {% element button type="submit" tags="prominent,login" %}
-                                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                    {% trans "Sign In" %}
-                                </button>
-                            {% endelement %}
-                        </div>
-                    {% endslot %}
-                {% endelement %}
-            {% endif %}
-
-            {% if LOGIN_BY_CODE_ENABLED or PASSKEY_LOGIN_ENABLED %}
-                {% element hr %}
-                    <div class="mt-6">
-                        <div class="relative">
-                            <div class="absolute inset-0 flex items-center">
-                                <div class="w-full border-t border-gray-300"></div>
-                            </div>
-                            <div class="relative flex justify-center text-sm">
-                                <span class="px-2 bg-white text-gray-500">Or continue with</span>
-                            </div>
-                        </div>
-                    </div>
-                {% endelement %}
-                
-                <div class="mt-6">
-                    {% element button_group vertical=True %}
-                        <div class="space-y-4">
-                            {% if PASSKEY_LOGIN_ENABLED %}
-                                {% element button type="submit" form="mfa_login" id="passkey_login" tags="prominent,login,outline,primary" %}
-                                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                        {% trans "Sign in with a passkey" %}
-                                    </button>
-                                {% endelement %}
-                            {% endif %}
-                            {% if LOGIN_BY_CODE_ENABLED %}
-                                {% element button href=request_login_code_url tags="prominent,login,outline,primary" %}
-                                    <a href="{{ request_login_code_url }}" class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                        {% trans "Send me a sign-in code" %}
-                                    </a>
-                                {% endelement %}
-                            {% endif %}
-                        </div>
-                    {% endelement %}
+                <!-- Email Field -->
+                <div>
+                    <input 
+                        type="email" 
+                        name="login" 
+                        placeholder="your mail" 
+                        class="input-field"
+                        required
+                    >
                 </div>
-            {% endif %}
+                
+                <!-- Password Field with Toggle -->
+                <div class="relative">
+                    <input 
+                        type="password" 
+                        name="password" 
+                        placeholder="Password" 
+                        class="input-field pr-12"
+                        required
+                        id="password-field"
+                    > 
+                      <i class='bx bx-hide password-toggle' onclick="togglePassword(this, 'id_password1')"></i>
+                       
+                </div>
+
+                <!-- Remember Me and Forgot Password -->
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" name="remember" id="remember" class="w-5 h-5 rounded">
+                        <label for="remember" class="text-white">{% trans "Remember me" %}</label>
+                    </div>
+                    <a href="{% url 'account_reset_password' %}" class="text-fuchsia-400 hover:underline text-sm">
+                        {% trans "Forgot password?" %}
+                    </a>
+                </div>
+                
+                <!-- Submit Button -->
+                <button type="submit" class="btn-primary">
+                    {% trans "Sign In" %}
+                </button>
+                
+                <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value|default_if_none:'' }}" />
+            </form>
 
             {% if SOCIALACCOUNT_ENABLED %}
-                <div class="mt-6">
-                    {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
-                </div>
+                <hr class="border-gray-300">
+                
+                <!-- Bouton Google personnalisé -->
+                {% get_providers as socialaccount_providers %}
+                {% for provider in socialaccount_providers %}
+                    {% if provider.id == "google" %}
+                        <a href="{% provider_login_url provider.id process='login' %}" 
+                           class="btn-primary flex justify-center items-center gap-2">
+                            
+                            {% trans "Sign in with Google" %}
+                        </a>
+                    {% endif %}
+                {% endfor %}
             {% endif %}
+
+            <p class="text-center text-white">
+                {% trans "Don't have an account?" %}
+                <a href="{% url 'account_signup' %}" class="text-fuchsia-400 hover:underline">{% trans "Sign up" %}</a>
+            </p>
         </div>
     </div>
 </div>
-{% endblock content %}
 
-{% block extra_body %}
-    {{ block.super }}
-    {% if PASSKEY_LOGIN_ENABLED %}
-        {% include "mfa/webauthn/snippets/login_script.html" with button_id="passkey_login" %}
-    {% endif %}
-{% endblock %}
+ 
+        {% block extra_body %}
+
+<script>
+    function togglePassword(icon, fieldId) {
+        const field = document.getElementById(fieldId);
+        if (field.type === "password") {
+            field.type = "text";
+            icon.classList.replace('bx-hide', 'bx-show');
+        } else {
+            field.type = "password";
+            icon.classList.replace('bx-show', 'bx-hide');
+        }
+    }
+</script>
+        {% endblock extra_body %}
+{% endblock content %}
