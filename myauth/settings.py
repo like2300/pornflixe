@@ -86,7 +86,8 @@ SOCIALACCOUNT_PROVIDERS = {
             'redirect_uris': [
                 'http://localhost:8000/accounts/google/login/callback/',
                 'http://127.0.0.1:8000/accounts/google/login/callback/',
-                'http://pornflixe-production.up.railway.app/accounts/google/login/callback/'
+                'http://pornflixe-production.up.railway.app/accounts/google/login/callback/',
+                'https://pornflixe.onrender.com/accounts/google/login/callback/',
                 # Ajoutez ici votre domaine de production quand nécessaire
             ],
         },
