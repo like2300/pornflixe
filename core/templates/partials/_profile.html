@@ -1,0 +1,69 @@
+
+        <div class="bg-gray-100">
+                    <!-- Sidebar -->
+              <div class="fixed z-40 top-0 left-0 backdrop-blur-md text-white w-[320px] sm:w-[400px] md:w-[550px] min-h-screen overflow-y-auto transition-transform transform -translate-x-full ease-in-out duration-300"
+                  id="sidebar">
+                <div class="p-6 bg-black/80 h-screen items-center flex flex-col justify-center">
+
+                  <!-- Header / Fermer -->
+                  <div class= "flex items-center h-screen justify-center flex-col   mb-6">
+                    <button onclick="" class="absolute top-4 right-4 text-white">
+                      <i class='bx bx-x text-3xl'></i>
+                    </button>
+
+                    <!-- Profil -->
+                    <div class="flex items-center justify-center gap-4 mt-6 mb-8">
+                      {% if user.is_authenticated %}
+                      <div class="flex flex-col justify-center items-center gap-4">
+                              <div class="w-40 h-40 rounded-full bg-[#a21892]    flex items-center justify-center font-bold text-6xl  ">
+                                  {{ user.username|slice:"0:1" }}
+                              </div>
+                              <div class="flex flex-col items-center justify-center">
+                                  <h3 class="font-semibold  ">{{ user.username|upper }}</h3>
+                                  <p class="text-sm text-gray-400">Utilisateur en plan <span class="font-bold">{{ user.plan }} free </span></p>
+                                  <p class="text-sm text-gray-400">Dernière connexion le {{ user.last_login }}</p>
+                              </div>
+                      </div>
+                      {% else %}
+                      <div class="flex flex-col justify-center items-center gap-4">
+                        <div onclick="document.location.href='{% url 'account_login' %}'" class="w-40 h-40 rounded-full bg-gray-700 flex items-center justify-center">
+                                 <i class='bx  bx-user text-4xl'></i>
+                        </div>
+                        <div class="flex flex-col items-center justify-center">
+                          <h3 class="font-semibold">Invité</h3>
+                          <p class="text-sm text-gray-400">Connectez-vous pour continuer</p>
+                        </div>
+                        </div>
+                      {% endif %}
+                    </div>
+
+                    <!-- Menu -->
+                    <nav class="mt-6 space-y-4">
+                    
+                      {% if user.is_authenticated %}
+                      <div class="flex items-center justify-center">
+                          <a href="{% url 'account_logout' %}" class="block py-2 px-4 rounded-full hover:bg-[#a21892]  border-2 border-[#a21892] hover:bg-opacity-30 transition">
+                                  <i class='bx bx-log-out mr-3'></i> Se déconnecter
+                          </a>
+                      </div>
+                      {% else %}
+                        <div class="flex items-center justify-center gap-4">
+                            <a href="{% url 'account_login' %}" class="block py-2 px-4 rounded-full hover:bg-[#a21892]  border-2 border-[#a21892] hover:bg-opacity-30 transition">
+                              <i class='bx bx-log-in mr-3'></i> Connexion
+                            </a>
+                            <a href="{% url 'account_signup' %}" class="block py-2 px-4 rounded-full hover:bg-[#a21892]  border-2 border-[#a21892] hover:bg-opacity-30 transition">
+                              <i class='bx bx-user-plus mr-3'></i> S’inscrire
+                            </a>
+                        </div>
+                      {% endif %}
+                    </nav>
+                  </div>
+
+                  <!-- Footer -->
+                  <div class="mt-auto pt-6 border-t border-gray-700 text-sm text-gray-500">
+                    &copy; 2025 Flixe. Tous droits réservés.
+                  </div>
+                </div>
+              </div>
+            
+        </div>

@@ -1,0 +1,120 @@
+{% extends "baseApp.html" %}
+{% block title %}Short Videos{% endblock %}
+{% block content %}
+<style>
+  video::-webkit-media-controls {
+    display: none !important;
+  }
+
+  .progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0%;
+    height: 3px;
+    background: #a21892;
+    animation: loading 5s linear forwards;
+  }
+
+  @keyframes loading {
+    from { width: 0%; }
+    to { width: 100%; }
+  }
+
+  .video-container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    height: 100vh;
+    overflow: hidden;
+    scroll-snap-align: start;
+  }
+
+  .video-wrapper {
+    scroll-snap-type: y mandatory;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+    height: 100vh;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .video-wrapper::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+  }
+
+  .overlay-text {
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  .video-wrapper .video-container:hover .overlay-text {
+    opacity: 1;
+  }
+</style>
+
+<div class="video-wrapper" id="videoWrapper">
+     <center>
+         {% include "partials/_video_items.html" %}
+     </center>
+</div>
+
+<script>
+  const wrapper = document.getElementById('videoWrapper');
+  const containers = document.querySelectorAll('.video-container');
+
+  function playVideo(container) {
+    containers.forEach(cont => {
+      const video = cont.querySelector('video');
+      if (cont === container) {
+        cont.setAttribute('data-playing', 'true');
+        video.play();
+      } else {
+        cont.setAttribute('data-playing', 'false');
+        video.pause();
+      }
+    });
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const container = entry.target;
+      if (entry.isIntersecting) {
+        playVideo(container);
+      }
+    });
+  }, {
+    threshold: 0.6
+  });
+
+  containers.forEach(container => {
+    observer.observe(container);
+  });
+
+  window.addEventListener('load', () => {
+    if (containers.length > 0) {
+      playVideo(containers[0]);
+    }
+  });
+
+  // Charger plus de vidéos en scrollant
+  let page = 1;
+  let loading = false;
+
+  wrapper.addEventListener('scroll', () => {
+    if (wrapper.scrollHeight - wrapper.scrollTop <= wrapper.clientHeight + 100 && !loading) {
+      loading = true;
+      page += 1;
+      fetch(`/load-more-videos/?page=${page}`)
+        .then(res => res.text())
+        .then(html => {
+          wrapper.innerHTML += html;
+          loading = false;
+
+          const newContainers = document.querySelectorAll('.video-container');
+          newContainers.forEach(container => {
+            observer.observe(container);
+          });
+        });
+    }
+  });
+</script>
+{% endblock %}

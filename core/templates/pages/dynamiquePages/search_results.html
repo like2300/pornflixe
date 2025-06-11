@@ -1,0 +1,41 @@
+{% extends "baseApp.html" %}
+{% block title %}Résultats de recherche{% endblock %}
+{% block content %}
+<div class="mt-16 px-4">
+  <h2 class="text-white text-4xl mb-8">Recherche : "{{ query }}"</h2>
+
+  <!-- Section : Films et Séries -->
+  {% if videos %}
+    <h3 class="text-white text-2xl mt-8 mb-4">Films & Séries</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for video in videos %}
+        {% include "partials/_videos.html" %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Section : Short Videos -->
+  {% if short_videos %}
+    <h3 class="text-white text-2xl mt-12 mb-4">Short Videos</h3>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      {% for video in short_videos %}
+            {% include "partials/_short_video.html" %}
+      {% endfor %}
+
+    </div>
+  {% endif %}
+
+  <!-- Section : Photos -->
+  {% if photos %}
+    <h3 class="text-white text-2xl mt-12 mb-4">Photos</h3>
+    <div class="columns-1 sm:columns-2 md:columns-3 gap-4">
+      {% include "partials/_photos.html" %}
+    </div>
+  {% endif %}
+
+  <!-- Aucun résultat -->
+  {% if not videos and not short_videos and not photos and query %}
+    <p class="text-white mt-8">Aucun résultat trouvé pour "{{ query }}"</p>
+  {% endif %}
+</div>
+{% endblock %}

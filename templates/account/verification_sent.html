@@ -1,9 +1,9 @@
-{% extends "account/base_entrance.html" %}
+{% extends "base.html" %}
 {% load i18n %}
 {% load allauth %}
-{% block head_title %}
+{% block  title %}
     {% trans "Verify Your Email Address" %}
-{% endblock head_title %}
+{% endblock   %}
 {% block content %}
     {% element h1 %}
         {% trans "Verify Your Email Address" %}
@@ -16,7 +16,7 @@
 
 
 {% comment %} 
-{% extends "account/base_entrance.html" %}
+{% extends "base.html" %}
 {% load i18n %}
 {% load allauth %}
 {% block head_title %}
