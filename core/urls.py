@@ -28,12 +28,18 @@ static_urls = [
 
 
 # description
+
+dynamic_urls = [
+    path('search/', SearchView.as_view(), name='search'),
+    path('<str:content_type>/<int:pk>/', DescriptionDetailView.as_view(), name='description_detail'),
+    path('view/<str:content_type>/<int:pk>/', increment_video_view, name='increment_view'),
+    path('like/<str:content_type>/<int:pk>/', toggle_favorite, name='toggle_favorite'),
+    path('comment/<str:content_type>/<int:pk>/', add_comment, name='add_comment'),
+]
  
 urlpatterns = [
     path('', include(static_urls)), 
-    # search url
-    path('search/', SearchView.as_view(), name='search'),
-    path('<str:content_type>/<int:pk>/', DescriptionDetailView.as_view(), name='description_detail'), 
+    path('', include(dynamic_urls)),
 ]
  
 if settings.DEBUG:

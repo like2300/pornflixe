@@ -4,10 +4,7 @@
 {% block title %}{{ content.title }}{% endblock %}
 {% block content %}
 
-<!-- Loader -->
-<div id="loading" class="fixed inset-0 bg-dark-main z-50 flex items-center justify-center hidden">
-  <div class="loader ease-linear rounded-full border-4 border-t-4 border-t-accent border-gray-800 h-12 w-12 animate-spin"></div>
-</div>
+ 
 
 <!-- Section principale -->
 <section class="glass-nav min-h-screen py-12 px-6 md:px-20 lg:px-32">
@@ -79,15 +76,6 @@
 
   </div>
 </section>
-
-<script>
-  // Simule le loader au chargement
-  window.addEventListener("DOMContentLoaded", () => {
-    const loader = document.getElementById('loading');
-    setTimeout(() => {
-      loader.classList.add("hidden");
-    }, 1000); // Cacher après 1s
-  });
-</script>
+ 
 
 {% endblock %}

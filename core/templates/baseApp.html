@@ -246,7 +246,7 @@
                                 {{ user.username }}
                             <p class="text-sm text-gray-400">Utilisateur en plan <span class="font-bold">{{ user.plan }} free </span></p>
                         </div>
-                         </div   
+                    </div   >
                         <a href="{% url 'account_logout' %}" class="text-gray-600 hover:text-gray-800 transition-colors">
                             <i class='bx bx-log-out text-gray-100 text-3xl text-[#a21892]'></i>
                         </a>
@@ -306,7 +306,7 @@
                 <!-- Search Input -->
                 <div class="relative flex items-center w-full md:w-[140px]">
                 <input
-                    class="w-full pl-10 pr-4 py-2 bg-white rounded-full outline-none placeholder-gray-500 text-sm"
+                    class="w-full pl-10 pr-4 py-2 bg-white rounded-full outline-none placeholder-gray-500 text-[12px] md:text-lg"
                     type="text"
                     name="q" 
                     placeholder="Search..."

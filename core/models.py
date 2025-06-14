@@ -96,7 +96,7 @@ class Video(models.Model):
         elif delta.seconds > 60:
             return f"{delta.seconds // 60} min"
         else:
-            return "maintenant" 
+            return "maintenant"  
 
 class Photo(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True)
@@ -128,6 +128,7 @@ class Photo(models.Model):
             return f"{delta.seconds // 60} minute(s)"
         else:
             return "maintenant"
+     
 
 
 class Slide(models.Model):
@@ -135,3 +136,17 @@ class Slide(models.Model):
 
     def __str__(self): 
         return self.film.title or "Aucune description"
+
+
+
+# Modèle pour les commentaires
+class Comment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Commentaire par {self.user.username}"

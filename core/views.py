@@ -2,7 +2,7 @@
 # views.py
 from django.views.generic import TemplateView, ListView , DetailView
 from .models import *
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.http import JsonResponse
 
@@ -12,24 +12,77 @@ def get_media_type(slug):
         return MediaType.objects.get(slug=slug)
     except MediaType.DoesNotExist:
         return None
+ 
+def toggle_favorite(request, content_type, object_id):
+    content_model = Video if content_type == 'video' else Photo
+    obj = content_model.objects.get(pk=object_id)
 
+    favorite, created = Favorite.objects.get_or_create(
+        user=request.user,
+        content_type=ContentType.objects.get_for_model(obj),
+        object_id=obj.id
+    )
+
+    if not created:
+        favorite.delete()  # Déjà en favoris → on retire
+        liked = False
+    else:
+        liked = True
+
+    return JsonResponse({
+        'liked': liked,
+        'count': obj.favorite_set.count()
+    })
+
+def add_comment(request, content_type, object_id):
+    content_model = Video if content_type == 'video' else Photo
+    obj = get_object_or_404(content_model, pk=object_id)
+
+    if request.method == 'POST':
+        text = request.POST.get('comment_text')
+        Comment.objects.create(
+            user=request.user,
+            content_type=ContentType.objects.get_for_model(obj),
+            object_id=obj.id,
+            text=text
+        )
+    return redirect(f'{content_type}_detail', pk=object_id)
+
+def increment_video_view(request, pk):
+    video = get_object_or_404(Video, pk=pk)
+    video.views += 1
+    video.save()
+    return redirect('video_detail', pk=video.pk)
+ 
 class DescriptionDetailView(DetailView):
     template_name = 'pages/dynamiquePages/detail.html'
     context_object_name = 'content'
 
-    def get_queryset(self):
+    def get_object(self, queryset=None):
         content_type = self.kwargs.get("content_type")
+        pk = self.kwargs.get("pk")
+
         if content_type == "video":
-            return Video.objects.all()
+            video = get_object_or_404(Video, pk=pk)
+            video.views += 1
+            video.save(update_fields=['views'])  # Plus efficace que save() complet
+            return video
+
         elif content_type == "photo":
-            return Photo.objects.all()
+            photo = get_object_or_404(Photo, pk=pk)
+            photo.views += 1
+            photo.save(update_fields=['views'])
+            return photo
+
         else:
-            return Video.objects.none()
+            return None
 
     def get_template_names(self):
         content_type = self.kwargs.get("content_type")
+        if content_type == "photo":
+            return ['pages/dynamiquePages/photo_detail.html']
         return ['pages/dynamiquePages/detail.html']
-    
+
 def load_more_videos(request):
     page = int(request.GET.get('page', 1))
     per_page = 5
