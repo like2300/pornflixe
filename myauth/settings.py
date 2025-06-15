@@ -46,9 +46,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  
-    #  CUSTOM AUTH FRO ALLAUTH
+    'whitenoise.middleware.WhiteNoiseMiddleware',   
+     #  CUSTOM AUTH FRO ALLAUTH
     "allauth.account.middleware.AccountMiddleware",
+   
 ]
 
 ROOT_URLCONF = 'myauth.urls'
@@ -63,6 +64,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.subscription_context',
             ],
         },
     },

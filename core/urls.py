@@ -19,12 +19,12 @@ static_urls = [
 ]
 
 
-# payement_urls = [
-#     path('subscribe/', SubscriptionView.as_view(), name='subscription'),
-#     path('subscribe/<int:plan_id>/', SubscribeView.as_view(), name='subscribe_plan'),
-#     path('success/', success_view, name='payment_success'),
-#     path('cancel/', cancel_view, name='payment_cancel'),
-# ]
+payement_urls = [
+    path('', SubscriptionView.as_view(), name='subscription'),
+    path('<int:plan_id>/', SubscribeView.as_view(), name='subscribe_plan'),
+    path('success/', Success_view.as_view(), name='payment_success'),
+    path('cancel/', Cancel_view.as_view(), name='payment_cancel'),
+]
 
 
 # description
@@ -35,11 +35,15 @@ dynamic_urls = [
     path('view/<str:content_type>/<int:pk>/', increment_video_view, name='increment_view'),
     path('like/<str:content_type>/<int:pk>/', toggle_favorite, name='toggle_favorite'),
     path('comment/<str:content_type>/<int:pk>/', add_comment, name='add_comment'),
+    path('update-username/', UsernameUpdateView.as_view(), name='update_username'),
+    # video id player
+    path('video/<int:pk>/', VideoPlayerView.as_view(), name='video_detail'),
 ]
  
 urlpatterns = [
     path('', include(static_urls)), 
     path('', include(dynamic_urls)),
+    path('subscribe/',include(payement_urls))
 ]
  
 if settings.DEBUG:

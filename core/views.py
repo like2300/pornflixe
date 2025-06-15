@@ -1,11 +1,19 @@
  
 # views.py
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView, ListView , DetailView
 from .models import *
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.http import JsonResponse
+from django.views.generic.base import ContextMixin
+from django.views.generic.edit import UpdateView 
+from django.urls import reverse_lazy
+from django.contrib import messages
+from django.db.models import F
+from django.http import Http404
 
+ 
 # Helper pour récupérer MediaType par slug
 def get_media_type(slug):
     try:
@@ -94,16 +102,30 @@ def load_more_videos(request):
     })
 
 # Vue d'accueil
+
 class HomeView(TemplateView):
     template_name = 'pages/staticpages/home.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        # Gestion des utilisateurs connectés
+        if self.request.user.is_authenticated:
+            try:
+                user_subscription = UserSubscription.objects.get(user=self.request.user)
+                context['has_active_subscription'] = user_subscription.is_subscribed()
+                context['user_subscription'] = user_subscription
+            except UserSubscription.DoesNotExist:
+                context['has_active_subscription'] = False
+        
+        # Contenu accessible à tous (connectés ou non)
         context['slides'] = Slide.objects.all()[:10]
         context['videos'] = Video.objects.filter(types__slug__in=['film', 'seri'])[:6]
+        
         short_type = get_media_type('short')
         context['short_videos'] = Video.objects.filter(types=short_type)[:10] if short_type else Video.objects.none()
         context['photos'] = Photo.objects.all()[:10]
+        
         return context
 
 # Séries
@@ -191,9 +213,36 @@ class GenresView(ListView):
         context['title'] = 'Genres'
         return context
 
-# Recherche
-# views.py
+class LecturelView(DetailView):
+    template_name = 'pages/dynamiquePages/lecture.html'
+    context_object_name = 'content'
 
+    def get_object(self, queryset=None):
+        content_type = self.kwargs.get("content_type")
+        pk = self.kwargs.get("pk")
+
+        if content_type == "video":
+            video = get_object_or_404(Video, pk=pk)
+            video.views += 1
+            video.save(update_fields=['views'])  # Plus efficace que save() complet
+            return video
+
+        elif content_type == "photo":
+            photo = get_object_or_404(Photo, pk=pk)
+            photo.views += 1
+            photo.save(update_fields=['views'])
+            return photo
+
+        else:
+            return None
+
+    def get_template_names(self):
+        content_type = self.kwargs.get("content_type")
+        if content_type == "photo":
+            return ['pages/dynamiquePages/photo_detail.html']
+        return ['pages/dynamiquePages/detail.html']
+
+# Recherche
 class SearchView(TemplateView):
     template_name = 'pages/dynamiquePages/search_results.html'
 
@@ -227,3 +276,101 @@ class SearchView(TemplateView):
  
         return context
  
+# payement 
+class SubscriptionView(TemplateView):
+   template_name = 'pages/dynamiquePages/search_results.html'
+   def get_context_data(self, **kwargs):
+       print('payement_urls')
+       return super().get_context_data(**kwargs)
+
+class SubscribeView(DetailView):
+    template_name = 'pages/dynamiquePages/search_results.html'
+    def get_context_data(self, **kwargs):
+       print('payement_urls')
+       return super().get_context_data(**kwargs)
+
+class Success_view(TemplateView):
+    template_name = 'pages/dynamiquePages/search_results.html'
+    def get_context_data(self, **kwargs):
+       print('payement_urls')
+       return super().get_context_data(**kwargs)
+
+class Cancel_view(TemplateView):
+    template_name = 'pages/dynamiquePages/search_results.html'
+    def get_context_data(self, **kwargs):
+       print('payement_urls')
+       return super().get_context_data(**kwargs)
+    
+
+class UsernameUpdateView(LoginRequiredMixin, UpdateView):
+    fields = ['username']
+    template_name = 'pages/dynamiquePages/account/username_update.html'
+    success_url = reverse_lazy('home')
+    
+    def get_object(self):
+        return self.request.user
+
+    def form_valid(self, form):
+        messages.success(self.request, "Votre nom d'utilisateur a été mis à jour")
+        return super().form_valid(form)
+    
+
+
+class BaseContextMixin(ContextMixin):
+    """Mixin qui ajoute les données communes à toutes les vues"""
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Données utilisateur et abonnement
+        if self.request.user.is_authenticated:
+            try:
+                user_subscription = UserSubscription.objects.get(user=self.request.user)
+                context['has_active_subscription'] = user_subscription.is_subscribed()
+                context['user_subscription'] = user_subscription
+            except UserSubscription.DoesNotExist:
+                context['has_active_subscription'] = False
+        
+        # Données globales (ex: menu, catégories)
+        context['main_categories'] = MediaType.objects.filter(slug__in=['film', 'seri', 'short'])
+        context['genres'] = Genre.objects.all()[:10]
+        
+        return context
+    
+
+
+
+
+class VideoPlayerView(DetailView):
+    """Vue améliorée pour la lecture de vidéos avec statistiques"""
+    template_name = 'pages/dynamiquePages/lecteur.html'
+    context_object_name = 'content'
+    content_models = {
+        'video': Video,
+        'photo': Photo
+    }
+
+    def get_object(self, queryset=None):
+        content_type = self.kwargs.get('content_type')
+        pk = self.kwargs.get('pk')
+        
+        model = self.content_models.get(content_type)
+        if not model:
+            raise Http404("Type de contenu non supporté")
+            
+        obj = get_object_or_404(model.objects.select_related('types'), pk=pk)
+        
+        # Incrément sécurisé des vues
+        model.objects.filter(pk=pk).update(views=F('views') + 1)
+        
+        return obj
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        content = context['content']
+        
+        # Recommendations basées sur le type
+        context['recommendations'] = self.content_models['video'].objects.filter(
+            types=content.types
+        ).exclude(pk=content.pk).order_by('-views')[:6]
+        
+        return context

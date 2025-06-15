@@ -3,6 +3,20 @@ from unfold.admin import ModelAdmin
 from .models import *
 from django.utils.html import format_html
 
+
+@admin.register(SubscriptionPlan)
+class SubscriptionPlanAdmin(ModelAdmin):
+    list_display = ('name','duration_days','description','price')
+    search_fields = ('name','description','price')
+    list_per_page = 20
+     
+
+@admin.register(UserSubscription)
+class UserSubscriptionAdmin(ModelAdmin):
+    list_display = ('user','is_active','start_date','end_date',)
+    search_fields =  ('user','is_active','start_date','end_date',)
+    list_per_page = 20
+    
 @admin.register(Slide)
 class SlideAdmin(ModelAdmin):
     list_display = ('film_title',)
@@ -43,3 +57,4 @@ class ContentTypeAdmin(ModelAdmin):
     list_display = ('name', 'slug')
     search_fields = ('name',) 
     list_per_page = 20 
+

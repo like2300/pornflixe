@@ -130,8 +130,9 @@
                 </form>
             {% endif %}
 
-            {% if SOCIALACCOUNT_ENABLED %}
-                <hr class="border-gray-300">
+            {% if SOCIALACCOUNT_ENABLED %} 
+               
+              {% include "partials/sectioneur.html" %}
                 
                 <!-- Bouton Google personnalisé -->
                 {% get_providers as socialaccount_providers %}

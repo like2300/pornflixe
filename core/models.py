@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 
 
+
 class SubscriptionPlan(models.Model):
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=6, decimal_places=2)

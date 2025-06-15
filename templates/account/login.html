@@ -97,8 +97,7 @@
             </form>
 
             {% if SOCIALACCOUNT_ENABLED %}
-                <hr class="border-gray-300">
-                
+              {% include "partials/sectioneur.html" %}
                 <!-- Bouton Google personnalisé -->
                 {% get_providers as socialaccount_providers %}
                 {% for provider in socialaccount_providers %}
