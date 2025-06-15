@@ -21,7 +21,7 @@ static_urls = [
 
 payement_urls = [
     path('', SubscriptionView.as_view(), name='subscription'),
-    path('<int:plan_id>/', SubscribeView.as_view(), name='subscribe_plan'),
+    path('<int:plan_id>/', SubscribeView.as_view(), name='subscribe_plans'),
     path('success/', Success_view.as_view(), name='payment_success'),
     path('cancel/', Cancel_view.as_view(), name='payment_cancel'),
 ]
