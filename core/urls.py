@@ -22,8 +22,8 @@ static_urls = [
 payement_urls = [
     path('', SubscriptionView.as_view(), name='subscription_plans'),
     path('<int:plan_id>/', SubscribeView.as_view(), name='subscribe_plans'),
-    path('success/', Success_view.as_view(), name='payment_success'),
-    path('cancel/', Cancel_view.as_view(), name='payment_cancel'),
+    path('success/', SuccessView.as_view(), name='payment_success'),
+    path('cancel/', CancelView.as_view(), name='payment_cancel'),
 ]
 
 
@@ -31,8 +31,7 @@ payement_urls = [
 
 dynamic_urls = [
     path('search/', SearchView.as_view(), name='search'),
-    path('<str:content_type>/<int:pk>/', DescriptionDetailView.as_view(), name='description_detail'),
-    path('view/<str:content_type>/<int:pk>/', increment_video_view, name='increment_view'),
+    path('<str:content_type>/<int:pk>/', DescriptionDetailView.as_view(), name='description_detail'), 
     path('like/<str:content_type>/<int:pk>/', toggle_favorite, name='toggle_favorite'),
     path('comment/<str:content_type>/<int:pk>/', add_comment, name='add_comment'),
     path('update-username/', UsernameUpdateView.as_view(), name='update_username'),
@@ -43,7 +42,8 @@ dynamic_urls = [
 urlpatterns = [
     path('', include(static_urls)), 
     path('', include(dynamic_urls)),
-    path('subscribe/',include(payement_urls))
+    path('subscribe/',include(payement_urls)),
+    path('webhook/', stripe_webhook, name='stripe_webhook'),
 ]
  
 if settings.DEBUG:

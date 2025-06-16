@@ -1,0 +1,12 @@
+{% extends 'baseApp.html' %}
+
+{% block content %}
+<div class="container text-center my-5">
+    <h1 class="display-4 text-success">Paiement réussi !</h1>
+    <p class="lead">Merci pour votre abonnement.</p>
+    <p>Votre accès premium est maintenant activé.</p>
+    <a href="{% url 'home' %}" class="btn btn-primary">
+        Retour à l'accueil
+    </a>
+</div>
+{% endblock %}

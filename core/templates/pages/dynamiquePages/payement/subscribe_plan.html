@@ -1,0 +1,32 @@
+{% extends 'baseApp.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4">Choisissez votre abonnement</h1>
+    
+    {% if current_plan %}
+    <div class="alert alert-info">
+        Vous avez actuellement l'abonnement : <strong>{{ current_plan.name }}</strong>
+    </div>
+    {% endif %}
+    
+    <div class="row">
+        {% for plan in plans %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h3 class="card-title">{{ plan.name }}</h3>
+                    <h4>{{ plan.price }}€</h4>
+                    <p class="card-text">{{ plan.description }}</p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'subscribe' plan.id %}" class="btn btn-primary btn-block">
+                        S'abonner
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

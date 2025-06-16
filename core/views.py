@@ -12,6 +12,12 @@ from django.urls import reverse_lazy
 from django.contrib import messages
 from django.db.models import F
 from django.http import Http404
+from django.conf import settings
+import stripe
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
+import json
+from django.urls import reverse
 
  
 # Helper pour récupérer MediaType par slug
@@ -56,12 +62,7 @@ def add_comment(request, content_type, object_id):
         )
     return redirect(f'{content_type}_detail', pk=object_id)
 
-def increment_video_view(request, pk):
-    video = get_object_or_404(Video, pk=pk)
-    video.views += 1
-    video.save()
-    return redirect('video_detail', pk=video.pk)
- 
+
 class DescriptionDetailView(DetailView):
     template_name = 'pages/dynamiquePages/detail.html'
     context_object_name = 'content'
@@ -277,30 +278,139 @@ class SearchView(TemplateView):
         return context
  
 # payement 
-class SubscriptionView(TemplateView):
-   template_name = 'pages/dynamiquePages/search_results.html'
-   def get_context_data(self, **kwargs):
-       print('payement_urls')
-       return super().get_context_data(**kwargs)
+class SubscriptionView(ListView):
+    template_name = 'pages/dynamiquePages/payement/subscribe_plan.html'
+    model = SubscriptionPlan
+    context_object_name = 'plans'
 
-class SubscribeView(DetailView):
-    template_name = 'pages/dynamiquePages/search_results.html'
     def get_context_data(self, **kwargs):
-       print('payement_urls')
-       return super().get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
+        if self.request.user.is_authenticated:
+            try:
+                user_sub = UserSubscription.objects.get(user=self.request.user)
+                context['current_plan'] = user_sub.plan if user_sub.is_subscribed() else None
+            except UserSubscription.DoesNotExist:
+                pass
+        return context
 
-class Success_view(TemplateView):
-    template_name = 'pages/dynamiquePages/search_results.html'
-    def get_context_data(self, **kwargs):
-       print('payement_urls')
-       return super().get_context_data(**kwargs)
 
-class Cancel_view(TemplateView):
-    template_name = 'pages/dynamiquePages/search_results.html'
+class SubscribeView(LoginRequiredMixin, DetailView):
+    model = SubscriptionPlan
+    template_name = 'pages/dynamiquePages/payement/subscription.html'
+
+    def get(self, request, *args, **kwargs):
+        plan = self.get_object()
+        user_sub, created = UserSubscription.objects.get_or_create(
+            user=request.user,
+            defaults={'plan': plan}
+        )
+
+        if not created:
+            user_sub.plan = plan
+            user_sub.save()
+
+        # Créer la session de checkout Stripe
+        success_url = request.build_absolute_uri(reverse('subscription_success'))
+        cancel_url = request.build_absolute_uri(reverse('subscription_cancel'))
+
+        try:
+            if not user_sub.stripe_customer_id:
+                customer = stripe.Customer.create(
+                    email=request.user.email,
+                    name=f"{request.user.first_name} {request.user.last_name}",
+                    metadata={"user_id": request.user.id}
+                )
+                user_sub.stripe_customer_id = customer.id
+                user_sub.save()
+
+            checkout_session = stripe.checkout.Session.create(
+                customer=user_sub.stripe_customer_id,
+                payment_method_types=['card'],
+                line_items=[{
+                    'price': plan.stripe_price_id,
+                    'quantity': 1,
+                }],
+                mode='subscription',
+                success_url=success_url + '?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=cancel_url,
+                metadata={
+                    "user_id": request.user.id,
+                    "plan_id": plan.id
+                }
+            )
+            return redirect(checkout_session.url)
+        except Exception as e:
+            return render(request, 'pages/dynamiquePages/payement/error.html', {
+                'error': str(e)
+            })
+
+
+
+class SuccessView(TemplateView):
+    template_name = 'pages/dynamiquePages/payement/payment_success.html'
+
     def get_context_data(self, **kwargs):
-       print('payement_urls')
-       return super().get_context_data(**kwargs)
-    
+        context = super().get_context_data(**kwargs)
+        session_id = self.request.GET.get('session_id')
+        if session_id:
+            try:
+                session = stripe.checkout.Session.retrieve(session_id)
+                context['session'] = session
+            except stripe.error.StripeError:
+                pass
+        return context
+
+class CancelView(TemplateView):
+    template_name = 'pages/dynamiquePages/payement/payment_cancel.html'
+
+@csrf_exempt
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+    event = None
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError as e:
+        return HttpResponse(status=400)
+
+    # Gérer les événements Stripe
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        handle_checkout_session(session)
+    elif event['type'] == 'customer.subscription.deleted':
+        subscription = event['data']['object']
+        handle_subscription_cancelled(subscription)
+
+    return HttpResponse(status=200)
+
+def handle_checkout_session(session):
+    user_id = session['metadata']['user_id']
+    plan_id = session['metadata']['plan_id']
+    subscription_id = session['subscription']
+
+    try:
+        user_sub = UserSubscription.objects.get(user__id=user_id)
+        user_sub.stripe_subscription_id = subscription_id
+        user_sub.is_active = True
+        user_sub.start_date = timezone.now()
+        user_sub.end_date = timezone.now() + timedelta(days=user_sub.plan.duration_days)
+        user_sub.save()
+    except UserSubscription.DoesNotExist:
+        pass
+
+def handle_subscription_cancelled(subscription):
+    try:
+        user_sub = UserSubscription.objects.get(stripe_subscription_id=subscription['id'])
+        user_sub.is_active = False
+        user_sub.save()
+    except UserSubscription.DoesNotExist:
+        pass
+
 
 class UsernameUpdateView(LoginRequiredMixin, UpdateView):
     fields = ['username']
@@ -313,8 +423,6 @@ class UsernameUpdateView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, "Votre nom d'utilisateur a été mis à jour")
         return super().form_valid(form)
-    
-
 
 class BaseContextMixin(ContextMixin):
     """Mixin qui ajoute les données communes à toutes les vues"""
@@ -336,10 +444,6 @@ class BaseContextMixin(ContextMixin):
         
         return context
     
-
-
-
-
 class VideoPlayerView(DetailView):
     """Vue améliorée pour la lecture de vidéos avec statistiques"""
     template_name = 'pages/dynamiquePages/lecteur.html'

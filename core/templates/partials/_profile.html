@@ -168,5 +168,9 @@ function openUsernamePopup() {
         .then(html => {
             document.body.insertAdjacentHTML('beforeend', html);
         });
+    {% comment %} deactivate sidebar {% endcomment %}
+    document.getElementById('sidebar').classList.add('-translate-x-full');
+
+
 }
 </script>

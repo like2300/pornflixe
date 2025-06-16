@@ -2,11 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-
 from datetime import datetime, timedelta
 from django.utils import timezone
-
-
 
 class SubscriptionPlan(models.Model):
     name = models.CharField(max_length=100)
