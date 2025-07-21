@@ -60,6 +60,7 @@ MIDDLEWARE = [
 # === URLS & WSGI ===
 ROOT_URLCONF = 'myauth.urls'
 
+WSGI_APPLICATION = "myauth.wsgi.application"
 # === TEMPLATES ===
 TEMPLATES = [
     {
