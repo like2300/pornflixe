@@ -10,12 +10,7 @@ class SubscriptionPlanAdmin(ModelAdmin):
     search_fields = ('name','description','price')
     list_per_page = 20
      
-
-@admin.register(UserSubscription)
-class UserSubscriptionAdmin(ModelAdmin):
-    list_display = ('user','is_active','start_date','end_date',)
-    search_fields =  ('user','is_active','start_date','end_date',)
-    list_per_page = 20
+ 
     
 @admin.register(Slide)
 class SlideAdmin(ModelAdmin):
@@ -58,3 +53,18 @@ class ContentTypeAdmin(ModelAdmin):
     search_fields = ('name',) 
     list_per_page = 20 
 
+
+@admin.register(UserSubscription)
+class UserSubscriptionAdmin(ModelAdmin):
+    list_display = ('user', 'plan', 'is_active', 'start_date', 'end_date')
+    search_fields = ('user__username', 'plan__name')
+    list_filter = ('is_active', 'plan')
+    actions = ['activate_subscriptions', 'deactivate_subscriptions']
+    
+    def activate_subscriptions(self, request, queryset):
+        queryset.update(is_active=True)
+    activate_subscriptions.short_description = "Activer les abonnements sélectionnés"
+    
+    def deactivate_subscriptions(self, request, queryset):
+        queryset.update(is_active=False)
+    deactivate_subscriptions.short_description = "Désactiver les abonnements sélectionnés"

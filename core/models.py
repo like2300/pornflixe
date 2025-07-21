@@ -4,17 +4,19 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.conf import settings  # Ajoutez cette ligne en haut du fichier
+from django.db import models
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 
 class SubscriptionPlan(models.Model):
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=6, decimal_places=2)
     duration_days = models.PositiveIntegerField(default=30)
-    stripe_price_id = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.name} - {self.price}€"
-
 
 class UserSubscription(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -60,9 +62,7 @@ class MediaType(models.Model):
 
     def __str__(self):
         return self.name
-
-
-
+ 
 
 class Video(models.Model):
     title = models.CharField(max_length=255)
@@ -136,15 +136,19 @@ class Slide(models.Model):
         return self.film.title or "Aucune description"
 
 
-
-# Modèle pour les commentaires
 class Comment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f"Commentaire par {self.user.username}"
+    class Meta:
+        ordering = ['-created_at']
+    
+
+

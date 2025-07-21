@@ -1,5 +1,5 @@
     {% for photo in photos %}
-      <div class="break-inside-avoid mb-4" onclick="window.location.href='{% url 'description_detail' content_type='photo' pk=photo.pk %}'">
+      <div class="break-inside-avoid mb-4" onclick="window.location.href='{% url 'content_detail' content_type='photo' pk=photo.pk %}'">
         <div class="relative group overflow-hidden rounded-lg shadow-md bg-cover bg-center h-[200px] md:h-[250px]"
              style="background-image: url('{{ photo.image.url }}');">
           <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">

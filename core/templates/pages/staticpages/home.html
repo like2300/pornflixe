@@ -28,12 +28,7 @@
         </button>
 
         <!-- Info/Play Buttons (statique) -->
-        <div 
-          class="absolute bottom-4 right-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-[#a21892] flex items-center justify-center cursor-pointer"
-          
-        >
-          <i class='bx bx-play-circle text-white text-5xl'></i>
-        </div>
+         
       </div>
     </div>
 
@@ -83,7 +78,7 @@
           </div>
 
           <!-- Grid de vidéos courtes -->
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" id="short-videos">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" id="short_videos">
             {% for video in short_videos %}
                 {% include "partials/_short_video.html" %}
             {% empty %}

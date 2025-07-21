@@ -1,0 +1,465 @@
+{% extends "baseApp.html" %}
+{% load static %}
+
+{% block content %}
+<!-- Video.js CDN -->
+<link href="https://vjs.zencdn.net/8.10.0/video-js.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/videojs-mobile-ui@1/dist/videojs-mobile-ui.min.css" rel="stylesheet">
+<script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/videojs-mobile-ui@1/dist/videojs-mobile-ui.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<div class="min-h-screen  text-white">
+    <!-- Conteneur principal -->
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Colonne principale -->
+            <div class="w-full lg:w-2/3 space-y-8">
+                <!-- Lecteur vidéo avec bouton play -->
+                <div class="relative rounded-2xl overflow-hidden bg-gray-800/30 backdrop-blur-lg border border-gray-700/50 shadow-2xl aspect-video">
+                    <div class="plyr__video-embed w-full h-full" id="player">
+                       <video
+                    controls
+                    class="video-js vjs-big-play-centered vjs-fluid"
+                    data-setup='{"fill": true, "responsive": true}'
+                    preload="auto"
+                    width="100%"
+                    height="auto" 
+                    >
+  <source src="{{ video.video.url }}" type="video/mp4">
+  <p class="vjs-no-js">Activez JavaScript ou <a href="{{ video.video.url }}" download>téléchargez la vidéo</a>.</p>
+</video>
+                    </div>
+ 
+
+                    <!-- Overlay premium -->
+                    <div id="premium-overlay" class="hidden absolute inset-0 bg-gradient-to-t from-black/90 to-black/50 flex items-center justify-center p-4">
+                        <div class="bg-gray-900/90 backdrop-blur-md rounded-xl p-6 max-w-md w-full border border-gray-700/50">
+                            <div class="text-center mb-4">
+                                <div class="w-14 h-14 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                </div>
+                                <h3 class="text-xl font-bold text-white mb-1">Contenu Premium</h3>
+                                <p class="text-gray-300 text-sm">Débloquez cette vidéo et bien plus avec un abonnement</p>
+                            </div>
+                            <div class="space-y-3">
+                                <a href="{% url 'subscription_plans' %}" class="block bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-600 text-white font-bold py-3 px-6 rounded-full text-center transition-all duration-300 shadow-lg hover:shadow-red-500/20">
+                                    S'abonner maintenant
+                                </a>
+                                <button onclick="closePremiumOverlay()" class="w-full text-gray-400 hover:text-white text-sm transition">
+                                    Continuer l'aperçu
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Titre et métadonnées -->
+                <div class="space-y-4">
+                    <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">{{ video.title }}</h1>
+                    
+                    <div class="flex flex-wrap justify-between items-center gap-3">
+                        <div class="flex flex-wrap items-center gap-3 text-gray-400 text-sm">
+                            <span class="flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <span>{{ video.views }} vues</span>
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span>{{ video.created_at|date:"d/m/Y" }}</span>
+                            </span>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <button onclick="toggleFavorite('video', {{ video.id }})" 
+                                    class="flex items-center gap-1 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full transition-all duration-300 text-sm {% if is_favorite %}bg-red-600/10 text-red-500 border border-red-500/30{% else %}bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 border border-gray-700/50{% endif %}">
+                                <span class="text-lg">{% if is_favorite %}❤️{% else %}♡{% endif %}</span>
+                                <span class="hidden xs:inline">Favori</span>
+                            </button>
+                           <button onclick="openShare()" class="flex items-center gap-1 text-white bg-gray-800/50 px-3 py-1.5 rounded-full">
+  <i class="material-icons text-sm">share</i> Partager
+</button>
+
+<!-- Pop-up partage -->
+<div id="shareModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+  <div class="bg-gray-900 rounded-xl p-6 w-full max-w-sm">
+    <h2 class="text-lg font-bold mb-3">Partager cette vidéo</h2>
+
+    <!-- Réseaux classiques -->
+    <div class="flex justify-around mb-4">
+      <a id="fb"  class="text-blue-500"  href="#" target="_blank"><i class="material-icons">facebook</i></a>
+      <a id="tw"  class="text-sky-400"   href="#" target="_blank"><i class="material-icons">share</i></a>
+      <a id="wa"  class="text-green-500" href="#" target="_blank"><i class="material-icons">whatsapp</i></a>
+      <a id="cpy" class="text-gray-400"  href="#"><i class="material-icons">link</i></a>
+    </div>
+
+    <!-- QR Code -->
+    <canvas id="qrCanvas" class="mx-auto"></canvas>
+    <p class="text-xs text-center text-gray-400 mt-2">Scanne-moi !</p>
+
+    <button onclick="closeShare()" class="w-full mt-4 bg-red-600 rounded-full py-1.5 text-sm">Fermer</button>
+  </div>
+</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-5 border border-gray-700/50">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-base md:text-lg font-semibold text-white flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Description</span>
+                        </h3>
+                        <button id="show-more-btn" class="text-gray-400 hover:text-white text-sm transition flex items-center gap-1">
+                            <span id="show-more-text">Voir plus</span>
+                            <svg id="show-more-icon" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 transform transition-transform duration-300 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="video-description" class="text-gray-300 line-clamp-3 transition-all duration-500 ease-in-out text-sm md:text-base">
+                        {{ video.description|linebreaksbr }}
+                    </div>
+                </div>
+
+                <!-- Section commentaires -->
+                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-5 border border-gray-700/50">
+                    <h3 class="text-base md:text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <span>{{ comments.count }} Commentaires</span>
+                    </h3>
+                    
+                    {% if request.user.is_authenticated %}
+                    <form method="post" action="{% url 'add_comment' 'video' video.id %}" class="mb-6">
+                        {% csrf_token %}
+                        <div class="flex gap-3">
+                            <div class="flex-shrink-0">
+                                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                                    {{ request.user.username|first|upper }}
+                                </div>
+                            </div>
+                            <div class="flex-grow">
+                                <textarea name="comment_text" required 
+                                        class="w-full bg-gray-700/50 text-white p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-500 resize-none border border-gray-600/50 placeholder-gray-400 transition-all duration-300 text-sm"
+                                        rows="2" placeholder="Ajouter un commentaire..."></textarea>
+                                <div class="flex justify-end mt-1.5">
+                                    <button type="submit" class="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-600 text-white font-medium py-1.5 px-4 rounded-full transition-all duration-300 shadow text-sm">
+                                        Commenter
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    {% endif %}
+                    
+                    <div class="space-y-5">
+                        {% for comment in comments %}
+                      <!-- Exemple d’un commentaire -->
+                        <div class="flex gap-2 mb-4">
+                        <span class="material-icons text-2xl text-red-500">account_circle</span>
+                        <div class="flex-1">
+                            <p class="font-semibold text-sm">{{ comment.user.username }}</p>
+                            <p class="text-xs text-gray-300">{{ comment.text }}</p>
+                            <!-- bouton répondre -->
+                            <button class="text-xs text-red-400 mt-1" onclick="toggleReply({{ comment.id }})">
+                            <i class="material-icons align-middle text-sm">reply</i> Répondre
+                            </button>
+                            <!-- formulaire caché -->
+                            <form id="reply-{{ comment.id }}" class="hidden mt-2" method="post"
+                                action="{% url 'add_comment' 'video' video.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                            <textarea name="comment_text" rows="1" class="w-full bg-gray-800 text-white rounded p-1 text-xs resize-none"
+                                        placeholder="Réponse…"></textarea>
+                            <button type="submit" class="text-xs bg-red-600 px-2 py-1 rounded mt-1">Envoyer</button>
+                            </form>
+                        </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-gray-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                            </svg>
+                            <p class="text-gray-400 text-sm">Soyez le premier à commenter</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colonne latérale -->
+            <div class="w-full lg:w-1/3 space-y-6">
+                <!-- Section recommandations -->
+                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-5 border border-gray-700/50">
+                    <h3 class="text-base md:text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span>À suivre</span>
+                    </h3>
+                    <div class="space-y-3">
+                        {% for rec in recommendations %}
+                        <a href="{% url 'video_player' rec.id %}" class="group flex gap-3 transition-transform duration-300">
+                            <div class="flex-shrink-0 relative w-32 h-20 rounded-lg overflow-hidden shadow">
+                                <img src="{{ rec.cover_film.url }}" alt="{{ rec.title }}" 
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                                <div class="absolute bottom-1 right-1 bg-black/80 text-white text-2xs px-1 py-0.5 rounded">
+                                    {{ rec.duration }}
+                                </div>
+                            </div>
+                            <div class="flex-grow">
+                                <h4 class="text-white font-medium text-sm group-hover:text-red-400 transition line-clamp-2">{{ rec.title }}</h4>
+                                <p class="text-gray-400 text-xs mt-0.5">{{ rec.user.channel_name }}</p>
+                                <p class="text-gray-500 text-2xs mt-0.5 flex items-center gap-1">
+                                    <span>{{ rec.views }} vues</span>
+                                    <span>•</span>
+                                    <span>{{ rec.created_at|timesince }}</span>
+                                </p>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Vidéos récentes -->
+                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-5 border border-gray-700/50">
+                    <h3 class="text-base md:text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Vidéos récentes</span>
+                    </h3>
+                    <div class="grid grid-cols-1 gap-3">
+                        {% for recent in recent_videos %}
+                        <a href="{% url 'video_player' recent.id %}" class="group">
+                            <div class="relative rounded-lg overflow-hidden shadow">
+                                <img src="{{ recent.cover_film.url }}" alt="{{ recent.title }}" 
+                                     class="w-full rounded-lg aspect-video object-cover group-hover:scale-105 transition-transform duration-500">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+                                <div class="absolute bottom-2 left-2 right-2">
+                                    <h4 class="text-white font-medium text-sm group-hover:text-red-400 transition line-clamp-2 text-shadow">{{ recent.title }}</h4>
+                                </div>
+                                <div class="absolute bottom-1 right-1 bg-black/80 text-white text-2xs px-1 py-0.5 rounded">
+                                    {{ recent.duration }}
+                                </div>
+                                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <div class="bg-black/50 rounded-full p-2 transform group-hover:scale-110 transition-transform duration-300">
+                                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M6.3 2.8L14.8 10l-8.5 7.2V2.8z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-gray-500 text-2xs mt-1 flex items-center gap-1">
+                                <span>{{ recent.views }} vues</span>
+                                <span>•</span>
+                                <span>{{ recent.created_at|timesince }}</span>
+                            </p>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Popup d'abonnement -->
+<div id="subscription-modal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl max-w-md w-full p-6 text-white border border-gray-700/50 shadow-2xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-white">Passer à Premium</h3>
+            <button onclick="closeSubscriptionModal()" class="text-gray-400 hover:text-white transition p-1 rounded-full hover:bg-gray-700/50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div class="space-y-4 mb-5">
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 mt-0.5">
+                    <div class="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center text-red-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-medium text-white text-sm">Accès illimité à tous les contenus</h4>
+                    <p class="text-gray-400 text-xs mt-0.5">Regardez toutes les vidéos sans restriction</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 mt-0.5">
+                    <div class="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center text-red-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-medium text-white text-sm">Sans publicité</h4>
+                    <p class="text-gray-400 text-xs mt-0.5">Profitez d'une expérience sans interruption</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 mt-0.5">
+                    <div class="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center text-red-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-medium text-white text-sm">Téléchargement hors ligne</h4>
+                    <p class="text-gray-400 text-xs mt-0.5">Regardez vos vidéos préférées sans connexion</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="space-y-2">
+            <a href="{% url 'subscription_plans' %}" class="block bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-600 text-white font-bold py-2.5 px-5 rounded-full text-center transition-all duration-300 shadow-lg hover:shadow-red-500/30 text-sm">
+                Voir les offres
+            </a>
+            <button onclick="closeSubscriptionModal()" class="w-full text-center text-gray-400 hover:text-white transition text-sm">
+                Plus tard
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+ <script>
+    const player = videojs('my-video');
+videojs('my-video').mobileUi();  // contrôles mobiles optimisés
+ </script>
+
+<style>
+/* Styles pour le bouton play */
+#custom-play-btn {
+    transition: opacity 0.3s ease;
+}
+
+/* Thème personnalisé pour Plyr */
+:root {
+    --plyr-color-main: #ef4444;
+    --plyr-video-controls-background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+    --plyr-video-control-color: white;
+    --plyr-menu-color: white;
+    --plyr-menu-background: rgba(31, 41, 55, 0.9);
+    --plyr-tooltip-background: rgba(31, 41, 55, 0.9);
+    --plyr-font-smoothing: true;
+}
+
+.plyr--video .plyr__controls {
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    padding: 15px;
+}
+
+.plyr__control--overlaid {
+    background: rgba(239, 68, 68, 0.9);
+    backdrop-filter: blur(5px);
+    border: 2px solid white;
+    z-index: 5;
+}
+
+.plyr__control--overlaid:hover {
+    background: #ef4444;
+    transform: scale(1.05);
+}
+
+.plyr--full-ui input[type="range"] {
+    color: #ef4444;
+}
+
+/* Style pour la description */
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Rotation pour les icônes */
+.rotate-180 {
+    transform: rotate(180deg);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .plyr__controls {
+        padding: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .plyr__controls {
+        padding: 10px;
+    }
+    
+    .plyr__control--overlaid {
+        width: 45px;
+        height: 45px;
+    }
+}
+
+@media (max-width: 640px) {
+    .plyr__control--overlaid {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .plyr__controls .plyr__controls__item {
+        margin: 0 3px;
+    }
+}
+</style>
+
+
+
+<script>
+const shareUrl = '{{ request.build_absolute_uri }}';
+const shareTitle = '{{ video.title }}';
+
+/* --- Partage réseaux + QR --- */
+function openShare() {
+  document.getElementById('shareModal').classList.remove('hidden');
+  // réseaux
+  document.getElementById('fb').href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+  document.getElementById('tw').href = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`;
+  document.getElementById('wa').href = `https://wa.me/?text=${encodeURIComponent(shareTitle + ' ' + shareUrl)}`;
+  document.getElementById('cpy').onclick = () => navigator.clipboard.writeText(shareUrl);
+
+  // QR-Code
+  QRCode.toCanvas(document.getElementById('qrCanvas'), shareUrl, { width: 160 });
+}
+function closeShare() {
+  document.getElementById('shareModal').classList.add('hidden');
+}
+
+/* --- Toggle réponses --- */
+window.toggleReply = (id) => {
+  const form = document.getElementById(`reply-${id}`);
+  form.classList.toggle('hidden');
+};
+</script>
+{% endblock %}

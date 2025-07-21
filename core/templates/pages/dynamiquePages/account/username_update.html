@@ -1,5 +1,7 @@
-<div id="modifiy_user" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-none">
-    <div class="relative max-w-md w-full bg-gray-900 border-2 border-[#a21892]/50 rounded-xl p-6 shadow-2xl transform transition-all duration-300 scale-95">
+<script src="https://cdn.tailwindcss.com"></script>
+
+ 
+    <div class=" max-w-md w-full bg-gray-900 border-2 border-[#a21892]/50 rounded-xl p-6 shadow-2xl transform transition-all duration-300 scale-95">
         <!-- Close Button -->
         <button onclick="closeUsernameModal()" class="absolute top-3 right-3 text-gray-400 hover:text-[#a21892] transition-colors">
             <i class='bx bx-x text-2xl'></i>
@@ -34,48 +36,28 @@
             </div>
             
             <!-- Action Buttons -->
-            <div class="flex justify-end gap-3 pt-2">
-                <button 
-                    type="button" 
-                    onclick="closeUsernameModal()"
-                    class="px-5 py-2.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-200 flex items-center gap-2"
-                >
-                    <i class='bx bx-x'></i> Annuler
-                </button>
+            <div class="w-full"> 
                 <button 
                     type="submit" 
-                    class="px-5 py-2.5 rounded-lg bg-gradient-to-r from-[#a21892] to-[#e94057] text-white hover:shadow-lg hover:shadow-[#a21892]/30 transition-all duration-200 flex items-center gap-2 group"
+                    class="px-5 py-2.5 w-full  flex items-center justify-center rounded-lg bg-gradient-to-r from-[#a21892] to-[#e94057] text-white hover:shadow-lg hover:shadow-[#a21892]/30 transition-all duration-200 flex items-center gap-2 group"
                 >
-                    <span>Enregistrer</span>
-                    <i class='bx bx-check group-hover:scale-125 transition-transform'></i>
+                    <span class="animate-pulse group-hover:animate-none text-center">Enregistrer</span> 
                 </button>
             </div>
         </form>
     </div>
-</div>
 
-<script>
-    // Fonctions pour gérer la modal
-    function showUsernameModal() {
-        const modal = document.getElementById('modifiy_user');
-        modal.classList.remove('opacity-0', 'pointer-events-none');
-        modal.classList.add('opacity-100', 'pointer-events-auto');
-        modal.querySelector('div').classList.remove('scale-95');
-        modal.querySelector('div').classList.add('scale-100');
-    }
 
-    function closeUsernameModal() {
-        const modal = document.getElementById('modifiy_user');
-        modal.classList.add('opacity-0', 'pointer-events-none');
-        modal.classList.remove('opacity-100', 'pointer-events-auto');
-        modal.querySelector('div').classList.add('scale-95');
-        modal.querySelector('div').classList.remove('scale-100');
-    }
-
-    // Pour ouvrir la modal, utilisez showUsernameModal() depuis votre bouton
-</script>
+    
 
 <style>
+    body {
+       display: flex;
+       justify-content: center;
+       align-items: center;
+       min-height: 100vh;
+       overflow: hidden;
+    }
     /* Animation d'entrée */
     @keyframes modalEnter {
         0% { opacity: 0; transform: translateY(20px) scale(0.95); }
@@ -93,3 +75,5 @@
         animation: pulse 2s infinite;
     }
 </style>
+
+  
