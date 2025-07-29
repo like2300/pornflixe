@@ -28,7 +28,7 @@
                             <a href="{% url 'home' %}" class="pill-mobile block py-2 text-white flex items-center gap-4  w-screen rounded-lg hover:bg-white/10 transition {% if request.path == '/' %}active{% endif %}" >  <i class='bx bx-home text-3xl' ></i>Home</a>
                             <a href="{% url 'series' %}" class="pill-mobile block py-2 text-white flex items-center gap-4  w-screen rounded-lg hover:bg-white/10 transition {% if request.path == '/series' %}active{% endif %}"><i class='bx bx-tv text-3xl'></i> Séri</a>
                             <a href="{% url 'films' %}" class="pill-mobile block py-2 text-white  flex items-center  gap-4  w-screen rounded-lg hover:bg-white/10 transition {% if request.path == '/films' %}active{% endif %}"><i class='bx bxs-film text-3xl' ></i>Film</a>  
-                            <a href="{% url 'short_videos' %}" class="pill-mobile block py-2 text-white  flex items-center  gap-4  w-screen rounded-lg hover:bg-white/10 transition {% if request.path == '/short_videos' %}active{% endif %}"><i class='bx bx-play text-3xl' ></i>Short Video</a>
+                            <a href="{% url 'shorts' %}" class="pill-mobile block py-2 text-white  flex items-center  gap-4  w-screen rounded-lg hover:bg-white/10 transition {% if request.path == '/short_videos' %}active{% endif %}"><i class='bx bx-play text-3xl' ></i>Short Video</a>
                             <a href="{% url 'photos' %}" class="pill-mobile block py-2 text-white flex items-center gap-4   w-screen  rounded-lg hover:bg-white/10 transition {% if request.path == '/photos' %}active{% endif %}"><i class='bx bx-image-alt text-3xl' ></i>Photo</a>
                             <a href="{% url 'genres' %}" class="pill-mobile block py-2 text-white  flex items-center  gap-4  w-screen rounded-lg hover:bg-white/10 transition {% if request.path == '/genres' %}active{% endif %}"><i class='bx bx-filter text-3xl' ></i>Genre</a>  
                             <div  class="pill-mobile block py-2 text-white  flex items-center  gap-4  w-screen rounded-lg hover:bg-white/10 transition"onclick="openUsernamePopup()" ><i class='bx bx-user text-3xl' ></i>Profil</div>  
@@ -57,7 +57,7 @@
                                             <span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span>
                                             NON ABONNÉ
                                         </span>
-                                        <a href="{% url 'subscription_plans' %}" class="text-xs font-medium bg-gradient-to-r from-[#a21892] to-[#e94057] text-transparent bg-clip-text hover:underline transition-all duration-300 hover:scale-105 inline-block">
+                                        <a href="{% url 'subscribe' %}" class="text-xs font-medium bg-gradient-to-r from-[#a21892] to-[#e94057] text-transparent bg-clip-text hover:underline transition-all duration-300 hover:scale-105 inline-block">
                                             S'abonner maintenant
                                         </a>
                                     {% endif %}
@@ -108,7 +108,7 @@
                             <a href="{% url 'films' %}" class="pill {% if request.path == '/films' %}active{% endif %}">
                                 <span>Film</span>
                             </a>
-                            <a href="{% url 'short_videos' %}" class="pill  {% if request.path == '/short_videos' %}active{% endif %}">
+                            <a href="{% url 'shorts' %}" class="pill  {% if request.path == '/short_videos' %}active{% endif %}">
                                 <span>Short  </span>
                             </a>
                             <a href="{% url 'photos' %}" class="pill {% if request.path == '/photos' %}active{% endif %}">

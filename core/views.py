@@ -1,303 +1,406 @@
-# payement 
-from django.views.generic import ListView
-from .models import SubscriptionPlan, UserSubscription
-# views.py
-from django.db import transaction
-from django.core.mail import send_mail
-import logging
-
-from django.db.models import Prefetch, F
-logger = logging.getLogger(__name__)
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import TemplateView, ListView , DetailView
-from .models import *
+from django.views.generic import TemplateView, ListView, DetailView, UpdateView
 from django.shortcuts import render, redirect, get_object_or_404
-from django.template.loader import render_to_string
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.views.generic.base import ContextMixin
-from django.views.generic.edit import UpdateView 
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.contrib import messages
-from django.db.models import F
-from django.http import Http404
+from django.db.models import F, Count, Q
+from django.db import transaction
 from django.conf import settings
-from decouple import config
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
-import json
-from django.urls import reverse
-
-import requests 
-from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
- 
-# Helper pour récupérer MediaType par slug
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.mail import send_mail
+from django.utils import timezone
+from datetime import timedelta
+import logging
+from paypal.standard.forms import PayPalPaymentsForm
+from django.contrib.auth import get_user_model
+
+from .models import *
+
+logger = logging.getLogger(__name__)
+
+# ============================================
+# 🧠 UTILITAIRES & MIXINS
+# ============================================
+
+class BaseContextMixin(ContextMixin):
+    """Ajoute les données communes à toutes les vues"""
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Statut d'abonnement
+        if self.request.user.is_authenticated:
+            try:
+                user_subscription = UserSubscription.objects.filter(
+                    user=self.request.user,
+                    is_active=True
+                ).select_related('plan').first()
+                
+                context['has_active_subscription'] = user_subscription is not None
+                context['user_subscription'] = user_subscription
+            except Exception as e:
+                logger.error(f"Error fetching subscription: {str(e)}")
+                context['has_active_subscription'] = False
+        
+        # Données globales
+        context['main_categories'] = MediaType.objects.filter(
+            slug__in=['film', 'seri', 'short']
+        )
+        context['genres'] = Genre.objects.annotate(
+            video_count=Count('video')
+        )[:10]
+        
+        return context
+
 def get_media_type(slug):
+    """Récupère un MediaType par son slug"""
     try:
         return MediaType.objects.get(slug=slug)
     except MediaType.DoesNotExist:
+        logger.warning(f"MediaType not found: {slug}")
         return None
- 
-def toggle_favorite(request, content_type, object_id):
-    content_model = Video if content_type == 'video' else Photo
-    obj = content_model.objects.get(pk=object_id)
 
-    favorite, created = Favorite.objects.get_or_create(
-        user=request.user,
-        content_type=ContentType.objects.get_for_model(obj),
-        object_id=obj.id
-    )
+# ============================================
+# ❤️ INTERACTIONS UTILISATEUR
+# ============================================
 
-    if not created:
-        favorite.delete()  # Déjà en favoris → on retire
-        liked = False
-    else:
-        liked = True
-
+def load_more_comments(request, content_type, content_id):
+    offset = int(request.GET.get('offset', 0))
+    limit = 5
+    
+    if content_type == 'video':
+        comments = Comment.objects.filter(video_id=content_id).order_by('-created_at')[offset:offset+limit]
+    
+    comments_data = [{
+        'user': {
+            'username': comment.user.username,
+            'first_letter': comment.user.username[0].upper()
+        },
+        'text': comment.text,
+        'time_ago': comment.created_at.strftime("%d/%m/%Y %H:%M"),
+    } for comment in comments]
+    
     return JsonResponse({
-        'liked': liked,
-        'count': obj.favorite_set.count()
+        'success': True,
+        'comments': comments_data,
+        'has_more': comments.count() >= limit
     })
 
-def add_comment(request, content_type, object_id):
-    content_model = Video if content_type == 'video' else Photo
-    obj = get_object_or_404(content_model, pk=object_id)
+@require_POST
+@login_required
+def toggle_favorite(request, content_type, content_id):
+    if content_type == 'video':
+        try:
+            video = Video.objects.get(id=content_id)
+            if request.user in video.favorites.all():
+                video.favorites.remove(request.user)
+                is_favorite = False
+            else:
+                video.favorites.add(request.user)
+                is_favorite = True
+            
+            return JsonResponse({
+                'success': True,
+                'is_favorite': is_favorite,
+                'likes_count': video.favorites.count()
+            })
+        except Video.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Video not found'}, status=404)
+    
+    return JsonResponse({'success': False, 'error': 'Invalid content type'}, status=400)
 
-    if request.method == 'POST':
-        text = request.POST.get('comment_text')
-        Comment.objects.create(
+@login_required
+def check_subscription(request):
+    """Vérifie si l'utilisateur est abonné"""
+    try:
+        subscription = UserSubscription.objects.filter(
             user=request.user,
-            content_type=ContentType.objects.get_for_model(obj),
-            object_id=obj.id,
+            is_active=True
+        ).first()
+        
+        is_subscribed = subscription is not None
+        return JsonResponse({
+            'is_subscribed': is_subscribed,
+            'message': 'Abonné' if is_subscribed else 'Non abonné'
+        })
+    except Exception as e:
+        logger.error(f"Subscription check error: {str(e)}")
+        return JsonResponse({'error': 'Server error'}, status=500)
+
+
+
+
+from django.contrib.contenttypes.models import ContentType
+
+@require_POST
+@login_required
+def add_comment(request, content_type, object_id):
+    try:
+        # Vérification d'abonnement
+        if not UserSubscription.objects.filter(user=request.user, is_active=True).exists():
+            return JsonResponse({
+                'error': 'subscription_required',
+                'message': 'Vous devez être abonné pour commenter'
+            }, status=403)
+
+        # Récupération du contenu
+        if content_type == 'video':
+            content = get_object_or_404(Video, pk=object_id)
+        else:
+            return JsonResponse({'error': 'Invalid content type'}, status=400)
+
+        text = request.POST.get('comment_text', '').strip()
+        if not text:
+            return JsonResponse({'error': 'Le commentaire ne peut pas être vide'}, status=400)
+
+        # Création du commentaire
+        comment = Comment.objects.create(
+            user=request.user,
+            content_type=ContentType.objects.get_for_model(content),
+            object_id=content.id,
             text=text
         )
-    return redirect(f'{content_type}_detail', pk=object_id)
- 
-class DescriptionDetailView(DetailView):
-    template_name = 'pages/dynamiquePages/detail.html'
-    context_object_name = 'content'
+        
+        return JsonResponse({
+            'success': True,
+            'comment': comment.to_dict(),
+            'comments_count': Comment.objects.filter(
+                content_type=ContentType.objects.get_for_model(content),
+                object_id=content.id
+            ).count()
+        })
+        
+    except Exception as e:
+        logger.error(f"Comment error: {str(e)}")
+        return JsonResponse({'error': 'Une erreur est survenue'}, status=500)
 
-    def get_object(self, queryset=None):
+# ============================================
+# 📺 PAGES DE CONTENU
+# ============================================
+
+class ContentDetailView(BaseContextMixin, DetailView):
+    """Vue générique pour les détails de contenu"""
+    context_object_name = 'content'
+    template_name = 'pages/dynamiquePages/detail.html'
+
+    def get_object(self):
         content_type = self.kwargs.get("content_type")
         pk = self.kwargs.get("pk")
 
         if content_type == "video":
-            video = get_object_or_404(Video, pk=pk)
-            video.views += 1
-            video.save(update_fields=['views'])  # Plus efficace que save() complet
-            return video
-
+            Video.objects.filter(pk=pk).update(views=F('views') + 1)
+            return get_object_or_404(
+                Video.objects.prefetch_related('types', 'genre'),
+                pk=pk
+            )
         elif content_type == "photo":
-            photo = get_object_or_404(Photo, pk=pk)
-            photo.views += 1
-            photo.save(update_fields=['views'])
-            return photo
+            Photo.objects.filter(pk=pk).update(views=F('views') + 1)
+            return get_object_or_404(Photo, pk=pk)
 
-        else:
-            return None
+        raise Http404("Type de contenu non supporté")
 
     def get_template_names(self):
-        content_type = self.kwargs.get("content_type")
-        if content_type == "photo":
+        if self.kwargs.get("content_type") == "photo":
             return ['pages/dynamiquePages/photo_detail.html']
-        return ['pages/dynamiquePages/detail.html']
+        return super().get_template_names()
 
-def load_more_videos(request):
-    page = int(request.GET.get('page', 1))
-    per_page = 5
-    videos = Video.objects.filter(types__slug='short')[(page - 1)*per_page:page*per_page]
-    html = render_to_string('partials/_video_items.html', {'videos': videos})
-    return JsonResponse({
-        'html': html,
-        'has_next': len(videos) == per_page
-    })
 
-# --------------------------------------------
-# 🏠 PAGE D’ACCUEIL & LISTES
-# --------------------------------------------
- 
 
-class HomeView(TemplateView):
+class VideoPlayerView(BaseContextMixin, DetailView):
+    template_name = 'pages/dynamiquePages/lecteur.html'
+    model = Video
+    context_object_name = 'video'
+    pk_url_kwarg = 'pk'
+
+    def get_object(self, queryset=None):
+        pk = self.kwargs.get(self.pk_url_kwarg)
+        video = get_object_or_404(
+            Video.objects.prefetch_related('types', 'genre', 'favorites'),
+            pk=pk
+        )
+        Video.objects.filter(pk=pk).update(views=F('views') + 1)
+        return video
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        video = context['video']
+        user = self.request.user
+        
+        context['is_favorite'] = (
+            user.is_authenticated and 
+            video.favorites.filter(id=user.id).exists()
+        )
+        
+        # Récupération des commentaires via la relation GenericRelation
+        content_type = ContentType.objects.get_for_model(video)
+        context['comments'] = Comment.objects.filter(
+            content_type=content_type,
+            object_id=video.id
+        ).select_related('user').order_by('-created_at')[:20]
+        
+        context['recommendations'] = self._get_recommendations(video)
+        
+        return context
+
+    def _get_recommendations(self, video):
+        try:
+            same_type_videos = Video.objects.filter(
+                types__in=video.types.all()
+            ).exclude(pk=video.pk)
+            
+            recommendations = same_type_videos.annotate(
+                common_genres=Count('genre', filter=Q(genre__in=video.genre.all()))
+            ).order_by('-common_genres', '-views')[:6]
+            
+            if len(recommendations) < 3:
+                additional = same_type_videos.exclude(
+                    pk__in=[v.pk for v in recommendations]
+                ).order_by('-views')[:6-len(recommendations)]
+                recommendations = list(recommendations) + list(additional)
+            
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"Recommendation error: {str(e)}")
+            return Video.objects.exclude(pk=video.pk).order_by('-views')[:6]
+
+
+def get_context_data(self, **kwargs):
+    context = super().get_context_data(**kwargs)
+    video = context['video']
+    user = self.request.user
+    
+    context['is_favorite'] = (
+        user.is_authenticated and 
+        video.favorites.filter(id=user.id).exists()
+    )
+    
+    # Correction ici : utiliser le bon related_name (commentaires ou comments)
+    context['comments'] = video.comments.select_related('user').order_by('-created_at')[:20]
+    context['recommendations'] = self._get_recommendations(video)
+    
+    return context
+
+    def _get_recommendations(self, video):
+        try:
+            # Vidéos du même type principal
+            main_type = video.types.first()
+            if not main_type:
+                return Video.objects.none()
+                
+            same_type_videos = Video.objects.filter(types=main_type).exclude(pk=video.pk)
+            
+            # Si pas assez, ajouter d'autres vidéos populaires
+            if same_type_videos.count() < 6:
+                additional = Video.objects.exclude(pk=video.pk).order_by('-views')[:6-same_type_videos.count()]
+                return (same_type_videos | additional).distinct()[:6]
+                
+            return same_type_videos[:6]
+        except Exception as e:
+            logger.error(f"Recommendation error: {str(e)}")
+            return Video.objects.none()
+            
+
+class HomeView(BaseContextMixin, TemplateView):
+    """Page d'accueil avec contenu personnalisé"""
     template_name = 'pages/staticpages/home.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Gestion des utilisateurs connectés
-        if self.request.user.is_authenticated:
-            try:
-                user_subscription = UserSubscription.objects.get(user=self.request.user)
-                context['has_active_subscription'] = user_subscription.is_subscribed()
-                context['user_subscription'] = user_subscription
-            except UserSubscription.DoesNotExist:
-                context['has_active_subscription'] = False
-        
-        # Contenu accessible à tous (connectés ou non)
         context['slides'] = Slide.objects.all()[:10]
-        context['videos'] = Video.objects.filter(types__slug__in=['film', 'seri'])[:6]
+        
+        film_seri_types = MediaType.objects.filter(slug__in=['film', 'seri'])
+        context['videos'] = Video.objects.filter(
+            types__in=film_seri_types
+        ).prefetch_related('types')[:6]
         
         short_type = get_media_type('short')
-        context['short_videos'] = Video.objects.filter(types=short_type)[:10] if short_type else Video.objects.none()
+        context['short_videos'] = Video.objects.filter(types=short_type)[:10] if short_type else []
+        
         context['photos'] = Photo.objects.all()[:10]
         
         return context
 
-# Séries
-class SeriesView(ListView):
+class MediaListView(BaseContextMixin, ListView):
+    """Vue de base pour les listes de médias"""
     model = Video
     template_name = 'pages/staticpages/list.html'
     context_object_name = 'videos'
+    media_type_slug = None
+    title = ""
 
     def get_queryset(self):
-        media_type = get_media_type('seri')
-        print(media_type)
+        if not self.media_type_slug:
+            return Video.objects.none()
+            
+        media_type = get_media_type(self.media_type_slug)
         return Video.objects.filter(types=media_type) if media_type else Video.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Séries'
+        context['title'] = self.title
         return context
 
-# Films
-class FilmsView(ListView):
-    model = Video
-    template_name = 'pages/staticpages/list.html'
-    context_object_name = 'videos'
+class SeriesView(MediaListView):
+    media_type_slug = 'seri'
+    title = 'Séries'
 
-    def get_queryset(self):
-        media_type = get_media_type('film')
-        return Video.objects.filter(types=media_type) if media_type else Video.objects.none()
+class FilmsView(MediaListView):
+    media_type_slug = 'film'
+    title = 'Films'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Films'
-        return context
-
-# Short Videos
-class ShortVideoListView(ListView):
-    model = Video
+class ShortVideoListView(MediaListView):
+    media_type_slug = 'short'
     template_name = 'pages/staticpages/short_videos.html'
-    context_object_name = 'videos'
-    paginate_by = 5  # Nombre de vidéos par page
- 
-    def get_queryset(self):
-        return Video.objects.filter(types__slug='short') \
-                            .prefetch_related('types') \
-                            .order_by('-created_at')
+    paginate_by = 5
+    title = 'Shorts'
 
-# Photos
-class PhotosView(ListView):
+class PhotosView(BaseContextMixin, ListView):
     model = Photo
     template_name = 'pages/staticpages/photos.html'
     context_object_name = 'photos'
+    title = 'Photos'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Photos'
-        return context
-
-# Genres (vues)
-class GenresView(ListView):
+class GenresView(BaseContextMixin, ListView):
     model = Genre
     template_name = 'pages/staticpages/genres.html'
     context_object_name = 'genres'
+    title = 'Genres'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get_queryset(self):
+        return Genre.objects.annotate(video_count=Count('video'))
 
-        # Récupérer tous les genres
-        genres = Genre.objects.all()
-
-        # Calculer le nombre de vidéos associées à chaque genre
-        genre_ids = [genre.id for genre in genres]
-        video_counts = (
-            Video.objects.filter(genre__in=genre_ids)
-            .values('genre')
-            .annotate(video_count=models.Count('id'))
-        )
-
-        # Transformer en dictionnaire { genre_id: count }
-        counts = {item['genre']: item['video_count'] for item in video_counts}
-
-        # Ajouter l'information au genre sans modifier le modèle
-        for genre in genres:
-            genre.video_count = counts.get(genre.id, 0)
-
-        context['genres'] = genres
-        context['title'] = 'Genres'
-        return context
-
-class LecturelView(DetailView):
-    template_name = 'pages/dynamiquePages/lecture.html'
-    context_object_name = 'content'
-
-    def get_object(self, queryset=None):
-        content_type = self.kwargs.get("content_type")
-        pk = self.kwargs.get("pk")
-
-        if content_type == "video":
-            video = get_object_or_404(Video, pk=pk)
-            video.views += 1
-            video.save(update_fields=['views'])  # Plus efficace que save() complet
-            return video
-
-        elif content_type == "photo":
-            photo = get_object_or_404(Photo, pk=pk)
-            photo.views += 1
-            photo.save(update_fields=['views'])
-            return photo
-
-        else:
-            return None
-
-    def get_template_names(self):
-        content_type = self.kwargs.get("content_type")
-        if content_type == "photo":
-            return ['pages/dynamiquePages/photo_detail.html']
-        return ['pages/dynamiquePages/detail.html']
-
-
-# --------------------------------------------
-# 🏠 PAGE D’ACCUEIL & LISTES
-# --------------------------------------------
- 
-# Recherche
-class SearchView(TemplateView):
+class SearchView(BaseContextMixin, TemplateView):
     template_name = 'pages/dynamiquePages/search_results.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        query = self.request.GET.get('q', '')
+        query = self.request.GET.get('q', '').strip()
         context['query'] = query
 
-        if query:
-            # Toutes les vidéos sauf short video
-            all_videos = Video.objects.filter(title__icontains=query)
+        if not query:
+            return context
 
-            # Short videos
-            short_type = get_media_type('short')  # ou 'short-video' selon ton MediaType
-            short_videos = Video.objects.filter(
-                title__icontains=query,
-                types=short_type
-            ) if short_type else Video.objects.none()
-
-            # Autres vidéos (non-short)
-            other_videos = all_videos.exclude(pk__in=short_videos.values_list('pk', flat=True))
-
-            context['videos'] = other_videos
-            context['short_videos'] = short_videos
-            context['photos'] = Photo.objects.filter(title__icontains=query)
-        else:
-            context['videos'] = Video.objects.none()
-            context['short_videos'] = Video.objects.none()
-            context['photos'] = Photo.objects.none()
-
- 
+        all_videos = Video.objects.filter(title__icontains=query).prefetch_related('types')
+        short_type = get_media_type('short')
+        
+        context['short_videos'] = all_videos.filter(types=short_type) if short_type else []
+        context['videos'] = all_videos.exclude(types=short_type) if short_type else all_videos
+        context['photos'] = Photo.objects.filter(title__icontains=query)
+        
         return context
- 
 
-class UsernameUpdateView(LoginRequiredMixin, UpdateView):
+# ============================================
+# 👤 GESTION DE COMPTE
+# ============================================
+
+class UsernameUpdateView(LoginRequiredMixin, BaseContextMixin, UpdateView):
     fields = ['username']
     template_name = 'pages/dynamiquePages/account/username_update.html'
     success_url = reverse_lazy('home')
@@ -306,182 +409,14 @@ class UsernameUpdateView(LoginRequiredMixin, UpdateView):
         return self.request.user
 
     def form_valid(self, form):
-        messages.success(self.request, "Votre nom d'utilisateur a été mis à jour")
+        messages.success(self.request, "Nom d'utilisateur mis à jour")
         return super().form_valid(form)
 
-class BaseContextMixin(ContextMixin):
-    """Mixin qui ajoute les données communes à toutes les vues"""
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # Données utilisateur et abonnement
-        if self.request.user.is_authenticated:
-            try:
-                user_subscription = UserSubscription.objects.get(user=self.request.user)
-                context['has_active_subscription'] = user_subscription.is_subscribed()
-                context['user_subscription'] = user_subscription
-            except UserSubscription.DoesNotExist:
-                context['has_active_subscription'] = False
-        
-        # Données globales (ex: menu, catégories)
-        context['main_categories'] = MediaType.objects.filter(slug__in=['film', 'seri', 'short'])
-        context['genres'] = Genre.objects.all()[:10]
-        
-        return context
+# ============================================
+# 💳 GESTION D'ABONNEMENT
+# ============================================
 
-
-class VideoPlayerView(DetailView):
-    template_name = 'pages/dynamiquePages/lecteur.html'
-    model = Video
-    context_object_name = 'video'
-
-    def get_queryset(self):
-        return Video.objects.prefetch_related(
-            'types',
-            'genre'
-        )
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        video = context['video']
-        
-        # Optimisation des requêtes pour les commentaires
-        content_type = ContentType.objects.get_for_model(video)
-        context['comments'] = Comment.objects.filter(
-            content_type=content_type,
-            object_id=video.id
-        ).select_related('user')
-        
-        # Recommendations
-        context['recommendations'] = Video.objects.filter(
-            types__in=video.types.all()
-        ).exclude(pk=video.pk).distinct().order_by('-views')[:6]
-            
-        return context
-
-
-
-
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import TemplateView, ListView, DetailView, UpdateView
-from django.shortcuts import render, redirect, get_object_or_404
-from django.template.loader import render_to_string
-from django.http import JsonResponse, HttpResponse, Http404
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-from django.urls import reverse, reverse_lazy
-from django.contrib import messages
-from django.db.models import F
-from django.conf import settings
-from django.contrib.auth.decorators import login_required
-from django.utils.decorators import method_decorator
-
-# Modules externes
-from decouple import config
-import json
-import requests
-
-# Models
-from .models import *
-
-# --------------------------------------------
-# 🧠 UTILITAIRES
-# --------------------------------------------
-
-def get_media_type(slug):
-    try:
-        return MediaType.objects.get(slug=slug)
-    except MediaType.DoesNotExist:
-        return None
-
-# --------------------------------------------
-# ❤️ FAVORIS & COMMENTAIRES
-# --------------------------------------------
-
-
-@require_POST
-def toggle_favorite(request, content_type, object_id):
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Authentication required'}, status=403)
-    
-    model = ContentType.objects.get(model=content_type).model_class()
-    obj = get_object_or_404(model, pk=object_id)
-    
-    favorite, created = Favorite.objects.get_or_create(
-        user=request.user,
-        content_type=ContentType.objects.get_for_model(obj),
-        object_id=obj.id
-    )
-
-    if not created:
-        favorite.delete()
-        liked = False
-    else:
-        liked = True
-
-    return JsonResponse({
-        'liked': liked,
-        'count': obj.favorites.count()  # Assurez-vous d'avoir related_name='favorites'
-    })
- 
-
-def add_comment(request, content_type, object_id):
-    """
-    Vue pour ajouter un commentaire
-    Args:
-        content_type: 'video' ou 'photo'
-        object_id: ID de l'objet
-    """
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Authentication required'}, status=403)
-    
-    # Déterminer le modèle cible
-    model = Video if content_type == 'video' else Photo
-    obj = get_object_or_404(model, pk=object_id)
-    
-    if request.method == 'POST':
-        comment_text = request.POST.get('comment_text', '').strip()
-        if not comment_text:
-            return JsonResponse({'error': 'Le commentaire ne peut pas être vide'}, status=400)
-        
-        # Créer le commentaire
-        comment = Comment.objects.create(
-            user=request.user,
-            content_type=ContentType.objects.get_for_model(obj),
-            object_id=obj.id,
-            text=comment_text
-        )
-        
-        # Réponse JSON pour les requêtes AJAX
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                'success': True,
-                'comment': {
-                    'text': comment.text,
-                    'author': comment.user.username,
-                    'date': comment.created_at.strftime('%d/%m/%Y %H:%M'),
-                    'avatar': comment.user.profile.avatar.url if hasattr(comment.user, 'profile') else ''
-                }
-            })
-        
-        # Redirection standard pour les requêtes non-AJAX
-        return redirect('video_player' if content_type == 'video' else 'photo_detail', pk=object_id)
-    
-    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
-
-# --------------------------------------------
-# 📺 DÉTAIL & LECTURE
-# --------------------------------------------
- 
-# --------------------------------------------
-# 🔍 RECHERCHE
-# --------------------------------------------
- 
-# --------------------------------------------
-# 💳 ABONNEMENT / PAIEMENT
-# --------------------------------------------
-
-class SubscriptionView(ListView):
+class SubscriptionView(BaseContextMixin, ListView):
     model = SubscriptionPlan
     template_name = 'pages/dynamiquePages/payement/subscribe_plan.html'
     context_object_name = 'plans'
@@ -489,36 +424,25 @@ class SubscriptionView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        current_plan = None
         if self.request.user.is_authenticated:
             try:
-                user_sub = UserSubscription.objects.filter(user=self.request.user).select_related('plan').latest('start_date')
-                if user_sub.is_active:
-                    current_plan = user_sub.plan
-                    for plan in context['plans']:
-                        if plan == current_plan:
-                            plan.is_current = True
-                            break
-            except UserSubscription.DoesNotExist:
-                pass
-        context['current_plan'] = current_plan
+                subscription = UserSubscription.objects.filter(
+                    user=self.request.user,
+                    is_active=True
+                ).select_related('plan').first()
+                
+                if subscription:
+                    context['current_plan'] = subscription.plan
+            except Exception as e:
+                logger.error(f"Subscription error: {str(e)}")
         return context
 
-# views.py  (seules les parties modifiées)
-
-# ---------- imports supplémentaires ----------
-from paypal.standard.forms import PayPalPaymentsForm
-from django.conf import settings
-from django.urls import reverse
-
-# ---------- SubscribeView ----------
-class SubscribeView(LoginRequiredMixin, DetailView):
+class SubscribeView(LoginRequiredMixin, BaseContextMixin, DetailView):
     model = SubscriptionPlan
     template_name = 'pages/dynamiquePages/payement/subscription.html'
-    
+
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
-        """Permet d'exempter la vue de la protection CSRF pour les callbacks PayPal"""
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -526,171 +450,50 @@ class SubscribeView(LoginRequiredMixin, DetailView):
         plan = self.object
         
         try:
-            # Vérifier si l'utilisateur a déjà un abonnement actif
             has_active_sub = UserSubscription.objects.filter(
                 user=self.request.user,
                 is_active=True
             ).exists()
             
-            # Préparer les données PayPal
-            paypal_dict = self._prepare_paypal_data(plan)
+            paypal_dict = {
+                "business": settings.PAYPAL_RECEIVER_EMAIL,
+                "amount": str(plan.price),
+                "currency_code": "EUR",
+                "item_name": f"Abonnement {plan.name}",
+                "item_number": plan.id,
+                "invoice": f"{self.request.user.id}-{plan.id}-{timezone.now().timestamp()}",
+                "notify_url": self.request.build_absolute_uri(reverse('paypal-ipn')),
+                "return": self.request.build_absolute_uri(reverse('subscription_success')) + f"?plan_id={plan.id}",
+                "cancel_return": self.request.build_absolute_uri(reverse('subscription_cancel')),
+                "custom": f"{self.request.user.id},{plan.id}",
+                "no_shipping": "1",
+                "no_note": "1",
+                "lc": "FR",
+                "charset": "utf-8",
+            }
             
             context.update({
                 'form': PayPalPaymentsForm(initial=paypal_dict),
                 'has_active_subscription': has_active_sub,
-                'paypal_test_mode': settings.PAYPAL_TEST,
-                'current_plan': plan
+                'paypal_test_mode': settings.PAYPAL_TEST
             })
             
         except Exception as e:
-            logger.error(f"Erreur préparation paiement: {str(e)}")
-            messages.error(self.request, "Une erreur est survenue lors de la préparation du paiement")
+            logger.error(f"Payment error: {str(e)}")
+            messages.error(self.request, "Erreur de configuration du paiement")
         
         return context
-
-    def _prepare_paypal_data(self, plan):
-        """Prépare le dictionnaire de configuration PayPal"""
-        base_url = self.request.build_absolute_uri('/')[:-1]  # Retire le slash final
-        
-        return {
-            "business": settings.PAYPAL_RECEIVER_EMAIL,
-            "amount": str(plan.price),
-            "currency_code": "EUR",
-            "item_name": f"Abonnement {plan.name}",
-            "item_number": plan.id,
-            "invoice": f"{self.request.user.id}-{plan.id}-{timezone.now().timestamp()}",
-            "notify_url": base_url + reverse('paypal-ipn'),
-            "return": base_url + reverse('subscription_success') + f"?plan_id={plan.id}&user_id={self.request.user.id}",
-            "cancel_return": base_url + reverse('subscription_cancel'),
-            "custom": f"{self.request.user.id},{plan.id}",
-            "no_shipping": "1",
-            "no_note": "1",
-            "lc": "FR",
-            "bn": "PP-BuyNowBF",
-            "charset": "utf-8",
-        }
-# ---------- SuccessView ----------
  
-# ---------- CancelView ----------
-class CancelView(TemplateView):
+
+class CancelView(BaseContextMixin, TemplateView):
     template_name = 'pages/dynamiquePages/payement/payment_cancel.html'
 
-# ---------- paypal_confirm devient un simple signal ----------
+# ============================================
+# 🔔 SIGNAL PAYPAL IPN
+# ============================================
+
 from paypal.standard.ipn.signals import valid_ipn_received
 from django.dispatch import receiver
-from django.contrib.auth import get_user_model
-
-# ---------- SuccessView ----------
-class SuccessView(LoginRequiredMixin, TemplateView):
-    template_name = 'pages/dynamiquePages/payement/payment_success.html'
-
-    def get(self, request, *args, **kwargs):
-        try:
-            context = self.get_context_data(**kwargs)
-            
-            # Vérifier le statut de paiement
-            plan_id = request.GET.get('plan_id')
-            if plan_id:
-                self._process_subscription(request.user, plan_id)
-            
-            return self.render_to_response(context)
-        
-        except Exception as e:
-            logger.error(f"Erreur dans SuccessView: {str(e)}", exc_info=True)
-            messages.error(request, "Une erreur est survenue lors du traitement de votre paiement")
-            return redirect('home')
-
-    def _process_subscription(self, user, plan_id):
-        """Gère l'activation de l'abonnement"""
-        try:
-            plan = SubscriptionPlan.objects.get(id=plan_id)
-            
-            with transaction.atomic():
-                # Désactiver les autres abonnements
-                UserSubscription.objects.filter(
-                    user=user,
-                    is_active=True
-                ).update(is_active=False)
-                
-                # Créer/mettre à jour l'abonnement
-                subscription, created = UserSubscription.objects.update_or_create(
-                    user=user,
-                    defaults={
-                        'plan': plan,
-                        'is_active': True,
-                        'start_date': timezone.now(),
-                        'end_date': timezone.now() + timedelta(days=plan.duration_days)
-                    }
-                )
-                
-                self._log_subscription_activation(user, plan, created)
-                self._send_confirmation_email(user, plan)
-                messages.success(self.request, self._get_success_message(plan))
-                
-        except SubscriptionPlan.DoesNotExist:
-            logger.error(f"Plan d'abonnement introuvable: ID {plan_id}")
-            raise
-        except Exception as e:
-            logger.error(f"Erreur activation abonnement: {str(e)}")
-            raise
-
-    def _log_subscription_activation(self, user, plan, created):
-        """Journalise l'activation de l'abonnement"""
-        action = "créé" if created else "mis à jour"
-        logger.info(
-            f"Abonnement {action} pour {user.username} - "
-            f"Plan: {plan.name} (ID: {plan.id})"
-        )
-
-    def _send_confirmation_email(self, user, plan):
-        """Envoie l'email de confirmation"""
-        try:
-            send_mail(
-                'Confirmation de votre abonnement',
-                self._get_email_content(user, plan),
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
-            )
-            logger.info(f"Email de confirmation envoyé à {user.email}")
-        except Exception as e:
-            logger.error(f"Erreur envoi email: {str(e)}")
-
-    def _get_email_content(self, user, plan):
-        """Retourne le contenu de l'email de confirmation"""
-        return f"""Bonjour {user.username},
-
-Votre abonnement à {plan.name} a bien été activé.
-Montant: {plan.price}€
-Durée: {plan.duration_days} jours
-
-Merci pour votre confiance !"""
-
-    def _get_success_message(self, plan):
-        """Retourne le message de succès"""
-        return (
-            f"Votre abonnement {plan.name} a été activé avec succès ! "
-            f"Vous avez maintenant accès à tous les contenus premium."
-        )
-
-    def get_context_data(self, **kwargs):
-        """Ajoute les données de contexte supplémentaires"""
-        context = super().get_context_data(**kwargs)
-        
-        if self.request.user.is_authenticated:
-            try:
-                subscription = UserSubscription.objects.get(
-                    user=self.request.user
-                )
-                context.update({
-                    'active_subscription': subscription,
-                    'subscription_active': subscription.is_active,
-                    'subscription_end_date': subscription.end_date
-                })
-            except UserSubscription.DoesNotExist:
-                pass
-                
-        return context
 
 
 
@@ -701,33 +504,170 @@ def handle_paypal_ipn(sender, **kwargs):
     
     if ipn.payment_status == "Completed":
         try:
-            user_id, plan_id = ipn.custom.split(',')
-            request = getattr(ipn, 'request', None)
+            user_id, plan_id = map(int, ipn.custom.split(','))
+            user = get_object_or_404(User, id=user_id)
+            plan = get_object_or_404(SubscriptionPlan, id=plan_id)
             
-            if request:
-                # Marquer la session pour la vue Success
-                request.session['payment_confirmed'] = True
+            # Désactiver les anciens abonnements
+            UserSubscription.objects.filter(user=user).update(is_active=False)
             
-            with transaction.atomic():
-                user = get_user_model().objects.get(id=user_id)
-                plan = SubscriptionPlan.objects.get(id=plan_id)
-                
-                # Activation de l'abonnement
-                UserSubscription.objects.filter(user=user).update(is_active=False)
-                subscription, _ = UserSubscription.objects.update_or_create(
-                    user=user,
-                    defaults={
-                        'plan': plan,
-                        'is_active': True,
-                        'start_date': timezone.now(),
-                        'end_date': timezone.now() + timedelta(days=plan.duration_days)
-                    }
-                )
-                
-                logger.info(f"IPN: Abonnement confirmé pour {user.username}")
-                
+            # Créer le nouvel abonnement
+            UserSubscription.objects.create(
+                user=user,
+                plan=plan,
+                start_date=timezone.now(),
+                end_date=timezone.now() + timedelta(days=plan.duration_days),
+                is_active=True
+            )
+            
+            logger.info(f"Abonnement créé pour {user.username} - Plan: {plan.name}")
+            
         except Exception as e:
-            logger.error(f"Erreur traitement IPN: {str(e)}")
+            logger.error(f"Erreur création abonnement: {str(e)}")
 
 
 
+
+def _activate_subscription(user_id, plan_id):
+    """Active ou met à jour l'abonnement"""
+    with transaction.atomic():
+        try:
+            user = get_user_model().objects.get(id=user_id)
+            plan = SubscriptionPlan.objects.get(id=plan_id)
+            
+            # Désactiver les autres abonnements
+            UserSubscription.objects.filter(
+                user=user,
+                is_active=True
+            ).update(is_active=False)
+            
+            # Créer ou mettre à jour l'abonnement
+            UserSubscription.objects.update_or_create(
+                user=user,
+                defaults={
+                    'plan': plan,
+                    'is_active': True,
+                    'start_date': timezone.now(),
+                    'end_date': timezone.now() + timedelta(days=plan.duration_days)
+                }
+            )
+            
+            logger.info(f"Subscription activated for user {user_id}, plan {plan_id}")
+            
+        except Exception as e:
+            logger.error(f"Subscription activation failed: {str(e)}")
+            raise
+
+def contact_support(request):
+    return render(request, 'support/contact.html')
+
+
+
+
+
+
+
+
+from django.shortcuts import redirect
+from django.contrib import messages
+from django.utils import timezone
+from django.views.generic import TemplateView
+from django.core.exceptions import PermissionDenied
+from django.db import transaction
+import logging
+
+logger = logging.getLogger(__name__)
+
+class SuccessView(LoginRequiredMixin, BaseContextMixin, TemplateView):
+    template_name = 'pages/dynamiquePages/payement/payment_success.html'
+
+    def get(self, request, *args, **kwargs):
+        try:
+            # Récupération du plan_id depuis les paramètres GET
+            plan_id = request.GET.get('plan_id')
+            if not plan_id:
+                messages.warning(request, "Aucun plan d'abonnement spécifié")
+                return redirect('subscribe')
+
+            # Vérification que l'utilisateur est bien authentifié
+            if not request.user.is_authenticated:
+                raise PermissionDenied("Utilisateur non authentifié")
+
+            # Récupération du plan d'abonnement
+            try:
+                plan = SubscriptionPlan.objects.get(id=plan_id)
+            except SubscriptionPlan.DoesNotExist:
+                messages.error(request, "Le plan d'abonnement spécifié n'existe pas")
+                return redirect('subscribe')
+
+            # Enregistrement de l'abonnement immédiatement plutôt que d'attendre l'IPN
+            try:
+                with transaction.atomic():
+                    # Désactiver les anciens abonnements
+                    UserSubscription.objects.filter(user=request.user).update(is_active=False)
+                    
+                    # Créer le nouvel abonnement
+                    subscription = UserSubscription.objects.create(
+                        user=request.user,
+                        plan=plan,
+                        start_date=timezone.now(),
+                        end_date=timezone.now() + timedelta(days=plan.duration_days),
+                        is_active=True
+                    )
+                    
+                    logger.info(f"Abonnement créé pour {request.user.username} - Plan: {plan.name}")
+
+                    # Stocker en session pour vérification ultérieure par IPN
+                    request.session['pending_subscription'] = {
+                        'user_id': request.user.id,
+                        'plan_id': plan_id,
+                        'subscription_id': subscription.id,
+                        'timestamp': timezone.now().isoformat()
+                    }
+
+                    # Message de succès
+                    messages.success(request, f"Votre abonnement {plan.name} a été activé avec succès!")
+                    
+                    # Envoyer un email de confirmation (optionnel)
+                    self._send_confirmation_email(request.user, plan)
+
+            except Exception as e:
+                logger.error(f"Erreur création abonnement: {str(e)}")
+                messages.error(request, "Une erreur est survenue lors de l'activation de votre abonnement")
+                return redirect('subscribe')
+
+            return self.render_to_response({
+                'plan': plan,
+                'user': request.user,
+                'subscription': subscription
+            })
+
+        except Exception as e:
+            logger.critical(f"Erreur inattendue dans SuccessView: {str(e)}")
+            messages.error(request, "Une erreur inattendue est survenue")
+            return redirect('home')
+
+    def _send_confirmation_email(self, user, plan):
+        """Envoie un email de confirmation (optionnel)"""
+        try:
+            subject = f"Confirmation de votre abonnement {plan.name}"
+            message = f"""
+            Bonjour {user.username},
+            
+            Votre abonnement {plan.name} a bien été activé.
+            Montant: {plan.price}€
+            Durée: {plan.duration_days} jours
+            
+            Merci pour votre confiance!
+            """
+            
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=True,
+            )
+            logger.info(f"Email de confirmation envoyé à {user.email}")
+        except Exception as e:
+            logger.error(f"Erreur envoi email confirmation: {str(e)}")

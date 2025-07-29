@@ -56,6 +56,37 @@
         background: #38a169;
     }
     
+    /* Description avec "Voir plus" */
+    .description-container {
+        position: relative;
+    }
+    
+    .description-text {
+        max-height: 120px;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+    
+    .description-text.expanded {
+        max-height: none;
+    }
+    
+    .show-more-btn {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent, #1a1a2e 50%);
+        padding-left: 2rem;
+        color: #a21892;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .show-more-btn:hover {
+        color: #e94057;
+    }
+    
     /* Overlay mobile */
     .mobile-overlay {
         position: fixed;
@@ -99,7 +130,6 @@
                     id="media-element"
                     class="w-full h-[400px] rounded-2xl object-cover cursor-grab active:cursor-grabbing"
                     poster="{{ content.cover_film.url }}"
-                     
                 >
                     <source src="{{ content.video.url }}" type="video/mp4">
                 </video>
@@ -119,7 +149,6 @@
                 <!-- Overlay d'actions desktop -->
                 <div class="absolute inset-0 flex items-end justify-center pb-8 desktop-actions">
                     <div class="flex gap-6">
-                        
                         <button class="action-btn like-btn" onclick="swipeRight()">
                             <i class='bx bx-heart text-2xl text-white'></i>
                         </button>
@@ -144,9 +173,12 @@
                 
                 <p class="text-gray-400 text-sm">Publié {{ content.get_time_ago }}</p>
                 
-                <!-- Description -->
-                <div class="mt-2 text-gray-300 leading-relaxed">
-                    <p>{{ content.description|default:"Aucune description disponible." }}</p>
+                <!-- Description avec bouton "Voir plus" -->
+                <div class="description-container mt-2">
+                    <div class="description-text text-gray-300 leading-relaxed relative">
+                        <p id="description-content">{{ content.description|default:"Aucune description disponible." }}</p>
+                        <span class="show-more-btn" id="show-more-btn">Voir plus</span>
+                    </div>
                 </div>
                 
                 <!-- Genres -->
@@ -168,7 +200,7 @@
                 
                 <!-- Boutons desktop -->
                 <div class="mt-8 hidden md:flex gap-4">
-                    <a href="{% url 'video_player' content.id %}" class="flex-1 text-center bg-[#a21892] hover:bg-[#8a147a] text-white py-3 px-6 rounded-full transition"> 
+                  <a href="{% url 'content_detail' content_type='video' pk=content.id %}" class="flex-1 text-center bg-[#a21892] hover:bg-[#8a147a] text-white py-3 px-6 rounded-full transition"> 
                         Regarder maintenant
                     </a>
                     <a href="#" class="flex-1 text-center border border-gray-600 hover:border-gray-400 text-white py-3 px-6 rounded-full transition">
@@ -179,7 +211,20 @@
         </div>
     </div>
     
-     
+    <!-- Overlay mobile -->
+    <div class="mobile-overlay">
+        <div class="flex justify-around">
+            <button class="action-btn pass-btn" onclick="swipeLeft()">
+                <i class='bx bx-x text-2xl text-white'></i>
+            </button>
+            <button class="action-btn like-btn" onclick="swipeRight()">
+                <i class='bx bx-heart text-2xl text-white'></i>
+            </button>
+            <button class="action-btn share-btn">
+                <i class='bx bx-share-alt text-2xl text-white'></i>
+            </button>
+        </div>
+    </div>
 </div>
 
 {% endblock %}
@@ -191,6 +236,24 @@
     let startX, startY;
     const mediaElement = document.getElementById('media-element');
     const mediaContainer = document.getElementById('media-container');
+    const descriptionContent = document.getElementById('description-content');
+    const showMoreBtn = document.getElementById('show-more-btn');
+    const descriptionText = document.querySelector('.description-text');
+    
+    // Fonction pour gérer le bouton "Voir plus"
+    function toggleDescription() {
+        descriptionText.classList.toggle('expanded');
+        showMoreBtn.textContent = descriptionText.classList.contains('expanded') ? 'Voir moins' : 'Voir plus';
+    }
+    
+    // Initialisation du bouton "Voir plus"
+    function initShowMoreButton() {
+        if (descriptionContent.scrollHeight > 120) {
+            showMoreBtn.style.display = 'block';
+        } else {
+            showMoreBtn.style.display = 'none';
+        }
+    }
     
     // Fonctions de swipe
     function swipeRight() {
@@ -295,5 +358,11 @@
             }
         });
     }
+    
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', function() {
+        initShowMoreButton();
+        showMoreBtn.addEventListener('click', toggleDescription);
+    });
 </script>
 {% endblock %}

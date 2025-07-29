@@ -16,10 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
-
+from paypal.standard.ipn import urls as paypal_urls
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
     path('', include('core.urls')),
-    path('paypal/', include('paypal.standard.ipn.urls')), 
+    path('paypal/', include(paypal_urls)),
 ]
