@@ -13,8 +13,7 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS =  ['*']
 SITE_ID = 1
 
-
-
+ 
 
 # === APPLICATIONS ===
 INSTALLED_APPS = [
@@ -177,7 +176,7 @@ LOGGING = {
             'handlers': ['console', 'file'],
             'level': 'INFO',
         },
-        'your_app': {
+        'core': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
         },
