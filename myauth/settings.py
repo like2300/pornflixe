@@ -153,11 +153,21 @@ PAYPAL_ENV = config('PAYPAL_ENV', default='sandbox')  # Par défaut sandbox
 PAYPAL_TEST = config('PAYPAL_TEST', default=True, cast=bool)                 # False en prod
 PAYPAL_RECEIVER_EMAIL =  config('PAYPAL_RECEIVER_EMAIL', default='sb-chiak44231938@business.example.com')
 SUPPORT_EMAIL = "support@tonsite.com"
-
+# === SOCIAL LOGIN (GOOGLE) ===
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
-        'SCOPE': ['profile', 'email'],
-        'AUTH_PARAMS': {'access_type': 'online'},
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'APP': {
+            'client_id': config('GOOGLE_CLIENT_ID'),  # À mettre dans .env
+            'secret': config('GOOGLE_SECRET'),        # À mettre dans .env
+            'key': ''
+        }
     }
 }
 
