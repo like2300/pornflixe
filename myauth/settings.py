@@ -164,8 +164,8 @@ SOCIALACCOUNT_PROVIDERS = {
             'access_type': 'online',
         },
         'APP': {
-            'client_id': config('GOOGLE_CLIENT_ID'),  # À mettre dans .env
-            'secret': config('GOOGLE_SECRET'),        # À mettre dans .env
+            'client_id':  CLIENT_ID,  # À mettre dans .env
+            'secret':  CLIENT_SECRET,        # À mettre dans .env
             'key': ''
         }
     }
