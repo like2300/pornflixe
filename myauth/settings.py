@@ -98,10 +98,7 @@ ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 LOGIN_REDIRECT_URL = '/home'
 ACCOUNT_LOGOUT_REDIRECT_URL = '/accounts/login/'
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if not DEBUG else 'http'
-
-# === SOCIAL LOGIN (GOOGLE) ===
-CLIENT_ID = config('CLIENT_ID')
-CLIENT_SECRET = config('CLIENT_SECRET')
+ 
 
 # === EMAIL CONFIG ===
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
@@ -164,13 +161,18 @@ SOCIALACCOUNT_PROVIDERS = {
             'access_type': 'online',
         },
         'APP': {
-            'client_id':  CLIENT_ID,  # À mettre dans .env
-            'secret':  CLIENT_SECRET,        # À mettre dans .env
+            'client_id': config('CLIENT_ID'),  # À mettre dans .env
+            'secret':  config('CLIENT_SECRET'),        # À mettre dans .env
             'key': ''
         }
     }
 }
 
+# Configuration Allauth supplémentaire
+ACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_QUERY_EMAIL = True
+SOCIALACCOUNT_STORE_TOKENS = True
 
 
 LOGGING = {
