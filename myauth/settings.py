@@ -154,7 +154,12 @@ PAYPAL_TEST = config('PAYPAL_TEST', default=True, cast=bool)                 # F
 PAYPAL_RECEIVER_EMAIL =  config('PAYPAL_RECEIVER_EMAIL', default='sb-chiak44231938@business.example.com')
 SUPPORT_EMAIL = "support@tonsite.com"
 
-
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+    }
+}
 
 
 
