@@ -159,10 +159,11 @@ SOCIALACCOUNT_PROVIDERS = {
         ],
         'AUTH_PARAMS': {
             'access_type': 'online',
+            'prompt': 'select_account' 
         },
         'APP': {
-            'client_id': config('CLIENT_ID'),  # À mettre dans .env
-            'secret':  config('CLIENT_SECRET'),        # À mettre dans .env
+            'client_id': config('CLIENT_ID'),   
+            'secret':  config('CLIENT_SECRET'),        
             'key': ''
         }
     }
@@ -199,3 +200,14 @@ LOGGING = {
         },
     },
 }
+
+
+
+
+
+import logging
+logger = logging.getLogger(__name__)
+
+def google_login(request):
+    logger.info("Tentative de connexion Google initiée")
+    # Votre code existant
