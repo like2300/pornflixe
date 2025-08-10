@@ -148,20 +148,26 @@ CSRF_TRUSTED_ORIGINS = config(
 
 
 # # For production on Render
-# if not DEBUG:
-#     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-#     AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-#     AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-#     AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+if not DEBUG:
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME =  'pornflixe-media'  
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_S3_REGION_NAME = 'us-east-1'
+    AWS_DEFAULT_ACL = None
+    AWS_S3_VERITY = True 
+ 
 
 
-# Augmentez ces valeurs selon vos besoins (exemple pour 500MB)
-DATA_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500MB
+    # Augmentez ces valeurs selon vos besoins (exemple pour 500MB)
+    DATA_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500MB
+    FILE_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500MB
 
-# Pour les fichiers très volumineux (>2.5MB), Django utilise un fichier temporaire
-FILE_UPLOAD_TEMP_DIR = os.path.join(BASE_DIR, 'tmp')
-FILE_UPLOAD_PERMISSIONS = 0o644
+    # Pour les fichiers très volumineux (>2.5MB), Django utilise un fichier temporaire
+    FILE_UPLOAD_TEMP_DIR = os.path.join(BASE_DIR, 'tmp')
+    FILE_UPLOAD_PERMISSIONS = 0o644
 
 # paypal
   
