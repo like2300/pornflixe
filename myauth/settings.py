@@ -58,6 +58,13 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'core.middleware.SubscriptionMiddleware',
+    
+]
+
+# Utilisez des workers asynchrones
+# Dans settings.py
+FILE_UPLOAD_HANDLERS = [
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
 ]
 
 # === URLS & WSGI ===
@@ -140,6 +147,21 @@ CSRF_TRUSTED_ORIGINS = config(
 )
 
 
+# # For production on Render
+# if not DEBUG:
+#     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+#     AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+#     AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+#     AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+
+
+# Augmentez ces valeurs selon vos besoins (exemple pour 500MB)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500MB
+
+# Pour les fichiers très volumineux (>2.5MB), Django utilise un fichier temporaire
+FILE_UPLOAD_TEMP_DIR = os.path.join(BASE_DIR, 'tmp')
+FILE_UPLOAD_PERMISSIONS = 0o644
 
 # paypal
   

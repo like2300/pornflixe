@@ -108,3 +108,5 @@ whitenoise==6.9.0
 wsproto==1.2.0
 celery==5.4.0
 redis==5.0.3
+django-storages
+boto3
