@@ -1,0 +1,79 @@
+<script src="https://cdn.tailwindcss.com"></script>
+
+ 
+    <div class=" max-w-md w-full bg-gray-900 border-2 border-[#a21892]/50 rounded-xl p-6 shadow-2xl transform transition-all duration-300 scale-95">
+        <!-- Close Button -->
+        <button onclick="closeUsernameModal()" class="absolute top-3 right-3 text-gray-400 hover:text-[#a21892] transition-colors">
+            <i class='bx bx-x text-2xl'></i>
+        </button>
+        
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <h3 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#a21892] to-[#e94057]">
+                Modifier votre profil
+            </h3>
+            <p class="text-sm text-gray-400 mt-1">Choisissez un nouveau nom d'utilisateur</p>
+        </div>
+        
+        <!-- Form -->
+        <form method="post" action="{% url 'update_username' %}" class="space-y-5">
+            {% csrf_token %}
+            
+            <!-- Username Field -->
+            <div class="relative group">
+                <label class="block text-sm font-medium text-gray-300 mb-1">Nom d'utilisateur</label>
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        name="username" 
+                        value="{{ user.username }}"
+                        class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#a21892] transition-all duration-200 group-hover:border-[#a21892]/50"
+                        required
+                        minlength="3"
+                    >
+                    <div class="absolute inset-0 rounded-lg border border-transparent group-hover:border-[#a21892]/30 pointer-events-none transition-all duration-300"></div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="w-full"> 
+                <button 
+                    type="submit" 
+                    class="px-5 py-2.5 w-full  flex items-center justify-center rounded-lg bg-gradient-to-r from-[#a21892] to-[#e94057] text-white hover:shadow-lg hover:shadow-[#a21892]/30 transition-all duration-200 flex items-center gap-2 group"
+                >
+                    <span class="animate-pulse group-hover:animate-none text-center">Enregistrer</span> 
+                </button>
+            </div>
+        </form>
+    </div>
+
+
+    
+
+<style>
+    body {
+       display: flex;
+       justify-content: center;
+       align-items: center;
+       min-height: 100vh;
+       overflow: hidden;
+    }
+    /* Animation d'entrée */
+    @keyframes modalEnter {
+        0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    
+    /* Effet de pulsation pour le bouton */
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(162, 24, 146, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(162, 24, 146, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(162, 24, 146, 0); }
+    }
+    
+    .animate-pulse {
+        animation: pulse 2s infinite;
+    }
+</style>
+
+  

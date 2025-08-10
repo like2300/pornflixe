@@ -1,0 +1,62 @@
+{% extends 'baseApp.html' %}
+
+{% block content %}
+<div id="pricing" class="py-20 md:px-20 lg:px-20">
+  <div class="container mx-auto px-4">
+    <div class="mb-12 text-center">
+      <h3 class="text-[#a21892]" data-aos="fade-down">Plans d'abonnement</h3>
+      <h2 class="text-white text-[30px] font-bold" data-aos="fade-down">
+        Choisissez votre forfait parfait
+      </h2>
+      <p class="mx-auto mt-4 max-w-2xl text-gray-400" data-aos="fade-down">
+        Sélectionnez parmi nos forfaits soigneusement conçus pour répondre à vos besoins spécifiques et à votre budget.
+      </p>
+    </div>
+
+    {% if current_plan %}
+    <div class="alert alert-info mb-8 text-center text-white bg-[#a21892] p-4 rounded-lg max-w-2xl mx-auto">
+      Vous avez actuellement l'abonnement : <strong>{{ current_plan.name }}</strong>
+    </div>
+    {% endif %}
+
+    <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+      {% for plan in plans %}
+      <div class="relative bg-[#1A1A1A] border border-gray-800 p-6 rounded-xl {% if plan.is_popular %}bg-violet-900/20 backdrop-blur-lg border-2 border-[#a21892] hover:-translate-y-2 transition-all duration-300{% endif %}">
+        
+        {% if plan.is_popular %}
+        <div class="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-[#a21892] px-3 py-1 text-white text-sm font-semibold">
+          Le Plus Populaire
+        </div>
+        {% endif %}
+        
+        <div class="text-center">
+          <h3 class="text-2xl font-bold text-[#a21892]">
+            {{ plan.name }}
+          </h3>
+          <div class="mt-4">
+            <span class="text-4xl text-[#a21892] font-bold">
+              {{ plan.price }}€
+            </span>
+            <span class="text-gray-400">/mois</span>
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <ul class="mb-8 space-y-4">
+            {% for feature in plan.features.all %}
+            <li class="flex items-center">
+              <svg class="mr-2 h-5 w-5 text-[#a21892]" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20"><path d="M9 12l2 2 4-4"/></svg>
+              <span class="text-white">{{ feature.description }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+          <a href="{% url 'subscribe' plan.id %}" class="block w-full py-3 px-6 text-center text-white font-semibold rounded-full bg-gradient-to-r from-[#a21892] to-[#a21841] shadow-lg hover:from-purple-600 hover:to-indigo-600 transition duration-300 ease-in-out transform hover:scale-105">
+            Choisir ce plan
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+Bonjour {{ user.username }},
+
+Merci pour votre abonnement à {{ plan.name }}.
+
+Détails de votre abonnement:
+- Prix: {{ plan.price }}€
+- Durée: {{ plan.duration_days }} jours
+- Date d'expiration: {{ expiration_date|date:"d/m/Y" }}
+
+Pour toute question, contactez-nous à {{ support_email }}.
+
+L'équipe de MySite

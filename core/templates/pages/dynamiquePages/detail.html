@@ -1,0 +1,368 @@
+{% extends "baseApp.html" %}
+{% load static %}
+
+{% block title %}{{ content.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Animations swipe */
+    @keyframes swipeRight {
+        0% { transform: translateX(0) rotate(0deg); opacity: 1; }
+        100% { transform: translateX(200%) rotate(20deg); opacity: 0; }
+    }
+    
+    @keyframes swipeLeft {
+        0% { transform: translateX(0) rotate(0deg); opacity: 1; }
+        100% { transform: translateX(-200%) rotate(-20deg); opacity: 0; }
+    }
+    
+    .swipe-right {
+        animation: swipeRight 0.5s forwards;
+    }
+    
+    .swipe-left {
+        animation: swipeLeft 0.5s forwards;
+    }
+    
+    /* Boutons actions */
+    .action-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    
+    .action-btn:hover {
+        transform: scale(1.1);
+    }
+    
+    .like-btn {
+        background: linear-gradient(135deg, #a21892 0%, #e94057 100%);
+    }
+    
+    .pass-btn {
+        background: #2d3748;
+    }
+    
+    .share-btn {
+        background: #3182ce;
+    }
+    
+    .message-btn {
+        background: #38a169;
+    }
+    
+    /* Description avec "Voir plus" */
+    .description-container {
+        position: relative;
+    }
+    
+    .description-text {
+        max-height: 120px;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+    
+    .description-text.expanded {
+        max-height: none;
+    }
+    
+    .show-more-btn {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent, #1a1a2e 50%);
+        padding-left: 2rem;
+        color: #a21892;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .show-more-btn:hover {
+        color: #e94057;
+    }
+    
+    /* Overlay mobile */
+    .mobile-overlay {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(10px);
+        z-index: 40;
+        padding: 1rem;
+    }
+    
+    /* Media queries */
+    @media (max-width: 768px) {
+        .desktop-actions {
+            display: none;
+        }
+        
+        .mobile-overlay {
+            display: block;
+        }
+    }
+    
+    @media (min-width: 769px) {
+        .mobile-overlay {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="relative min-h-screen">
+    <!-- Contenu principal -->
+    <div class="glass-nav min-h-screen py-12 px-4 md:px-20 lg:px-32">
+        <div class="max-w-6xl mx-auto grid items-center grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Partie gauche : Media avec interactions Tinder -->
+            <div class="relative group overflow-hidden rounded-2xl shadow-xl" id="media-container">
+                {% if content.video %}
+                <video 
+                    id="media-element"
+                    class="w-full h-[400px] rounded-2xl object-cover cursor-grab active:cursor-grabbing"
+                    poster="{{ content.cover_film.url }}"
+                >
+                    <source src="{{ content.video.url }}" type="video/mp4">
+                </video>
+                {% elif content.image %}
+                <img 
+                    id="media-element"
+                    src="{{ content.image.url }}" 
+                    alt="{{ content.title|default:'Image' }}" 
+                    class="w-full h-auto rounded-2xl object-cover cursor-grab active:cursor-grabbing"
+                />
+                {% else %}
+                <div class="w-full h-[400px] bg-gray-800 text-white flex items-center justify-center rounded-2xl">
+                    Aucun média disponible
+                </div>
+                {% endif %}
+                
+                <!-- Overlay d'actions desktop -->
+                <div class="absolute inset-0 flex items-end justify-center pb-8 desktop-actions">
+                    <div class="flex gap-6">
+                        <button class="action-btn like-btn" onclick="swipeRight()">
+                            <i class='bx bx-heart text-2xl text-white'></i>
+                        </button>
+                        <button class="action-btn share-btn">
+                            <i class='bx bx-share-alt text-2xl text-white'></i>
+                        </button>
+                        <button class="action-btn message-btn">
+                            <i class='bx bx-message text-2xl text-white'></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Partie droite : Infos -->
+            <div class="flex flex-col space-y-6">
+                <div class="flex justify-between items-center w-full">
+                    <h1 class="text-3xl md:text-4xl font-bold text-white">{{ content.title|default:"Titre non disponible" }}</h1>
+                    <span class="bg-[#a21892] text-white px-3 py-1 rounded-full text-sm">
+                        {{ content.views|default:0 }} vues
+                    </span>
+                </div>
+                
+                <p class="text-gray-400 text-sm">Publié {{ content.get_time_ago }}</p>
+                
+                <!-- Description avec bouton "Voir plus" -->
+                <div class="description-container mt-2">
+                    <div class="description-text text-gray-300 leading-relaxed relative">
+                        <p id="description-content">{{ content.description|default:"Aucune description disponible." }}</p>
+                        <span class="show-more-btn" id="show-more-btn">Voir plus</span>
+                    </div>
+                </div>
+                
+                <!-- Genres -->
+                <div class="mt-4">
+                    <div class="flex flex-wrap gap-2">
+                        {% if content.genre.all %}
+                            {% for genre in content.genre.all %}
+                                <a href="{{request.host}}/search/?q={{genre.name}}" class="bg-[#a21892]/30 text-white px-3 py-1 rounded-full text-sm border border-[#a21892]">
+                                    {{ genre.name }}
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <span class="bg-gray-700 text-white px-3 py-1 rounded-full text-sm">
+                                non-categorise
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Boutons desktop -->
+                <div class="mt-8 hidden md:flex gap-4">
+                  <a href="{% url 'content_detail' content_type='video' pk=content.id %}" class="flex-1 text-center bg-[#a21892] hover:bg-[#8a147a] text-white py-3 px-6 rounded-full transition"> 
+                        Regarder maintenant
+                    </a>
+                    <a href="#" class="flex-1 text-center border border-gray-600 hover:border-gray-400 text-white py-3 px-6 rounded-full transition">
+                        Ajouter aux favoris
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Overlay mobile -->
+    <div class="mobile-overlay">
+        <div class="flex justify-around">
+            <button class="action-btn pass-btn" onclick="swipeLeft()">
+                <i class='bx bx-x text-2xl text-white'></i>
+            </button>
+            <button class="action-btn like-btn" onclick="swipeRight()">
+                <i class='bx bx-heart text-2xl text-white'></i>
+            </button>
+            <button class="action-btn share-btn">
+                <i class='bx bx-share-alt text-2xl text-white'></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Variables globales
+    let isDragging = false;
+    let startX, startY;
+    const mediaElement = document.getElementById('media-element');
+    const mediaContainer = document.getElementById('media-container');
+    const descriptionContent = document.getElementById('description-content');
+    const showMoreBtn = document.getElementById('show-more-btn');
+    const descriptionText = document.querySelector('.description-text');
+    
+    // Fonction pour gérer le bouton "Voir plus"
+    function toggleDescription() {
+        descriptionText.classList.toggle('expanded');
+        showMoreBtn.textContent = descriptionText.classList.contains('expanded') ? 'Voir moins' : 'Voir plus';
+    }
+    
+    // Initialisation du bouton "Voir plus"
+    function initShowMoreButton() {
+        if (descriptionContent.scrollHeight > 120) {
+            showMoreBtn.style.display = 'block';
+        } else {
+            showMoreBtn.style.display = 'none';
+        }
+    }
+    
+    // Fonctions de swipe
+    function swipeRight() {
+        mediaElement.classList.add('swipe-right');
+        setTimeout(() => {
+            // Action après swipe (like)
+            alert('Contenu liké!');
+            mediaElement.classList.remove('swipe-right');
+        }, 500);
+    }
+    
+    function swipeLeft() {
+        mediaElement.classList.add('swipe-left');
+        setTimeout(() => {
+            // Action après swipe (pass)
+            alert('Contenu passé!');
+            mediaElement.classList.remove('swipe-left');
+        }, 500);
+    }
+    
+    // Gestion des événements tactiles
+    if (mediaElement) {
+        mediaElement.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        });
+        
+        mediaElement.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            const x = e.touches[0].clientX;
+            const y = e.touches[0].clientY;
+            
+            const deltaX = x - startX;
+            const deltaY = y - startY;
+            
+            // Déplacement horizontal seulement
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                e.preventDefault();
+                mediaElement.style.transform = `translateX(${deltaX}px) rotate(${deltaX * 0.1}deg)`;
+            }
+        });
+        
+        mediaElement.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            const x = e.changedTouches[0].clientX;
+            const deltaX = x - startX;
+            
+            // Seuil pour déclencher le swipe
+            if (Math.abs(deltaX) > 100) {
+                if (deltaX > 0) {
+                    swipeRight();
+                } else {
+                    swipeLeft();
+                }
+            } else {
+                mediaElement.style.transform = '';
+            }
+        });
+    }
+    
+    // Gestion des événements souris (pour desktop)
+    if (mediaElement) {
+        mediaElement.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+        
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const x = e.clientX;
+            const y = e.clientY;
+            
+            const deltaX = x - startX;
+            const deltaY = y - startY;
+            
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                mediaElement.style.transform = `translateX(${deltaX}px) rotate(${deltaX * 0.1}deg)`;
+            }
+        });
+        
+        window.addEventListener('mouseup', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            const x = e.clientX;
+            const deltaX = x - startX;
+            
+            if (Math.abs(deltaX) > 100) {
+                if (deltaX > 0) {
+                    swipeRight();
+                } else {
+                    swipeLeft();
+                }
+            } else {
+                mediaElement.style.transform = '';
+            }
+        });
+    }
+    
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', function() {
+        initShowMoreButton();
+        showMoreBtn.addEventListener('click', toggleDescription);
+    });
+</script>
+{% endblock %}

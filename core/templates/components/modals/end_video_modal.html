@@ -1,0 +1,42 @@
+<!-- Modal de fin de vidéo -->
+<div id="end-video-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+    <div class="bg-gray-800 rounded-xl p-6 max-w-md w-full text-center animate-fade-in">
+        <div class="mb-6">
+            <h3 class="text-xl font-bold text-white mb-2">Vous avez atteint la fin de la vidéo</h3>
+            <p class="text-gray-300">Merci d'avoir regardé cette vidéo</p>
+        </div>
+        
+        <div class="mb-6">
+            <h4 class="text-lg font-semibold text-white mb-3">Regardez ensuite</h4>
+            <div class="group flex gap-3 items-center justify-center">
+                <div class="flex-shrink-0 relative w-32 h-20 rounded-lg overflow-hidden">
+                    <img src="{{ recommendations.0.cover_film.url }}" alt="{{ recommendations.0.title }}" 
+                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200">
+                    <div class="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 rounded">
+                        {{ recommendations.0.duration }}
+                    </div>
+                </div>
+                <div class="text-left">
+                    <h4 class="text-white font-medium group-hover:text-purple-400">{{ recommendations.0.title|truncatechars:30 }}</h4>
+                    <p class="text-gray-400 text-xs">{{ recommendations.0.user.channel_name }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex gap-3 justify-center">
+            <button onclick="closeEndVideoModal()" class="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors">
+                Fermer
+            </button>
+              {% if recommendations.exists %}
+    <a href="{% url 'video_player' pk=recommendations.0.id %}" 
+       class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
+       Regarder {{ recommendations.0.title|truncatechars:20 }}
+    </a>
+{% else %}
+    <button class="bg-gray-500 text-white px-6 py-2 rounded-lg cursor-not-allowed" disabled>
+        Aucune recommandation
+    </button>
+{% endif %}
+        </div>
+    </div>
+</div>

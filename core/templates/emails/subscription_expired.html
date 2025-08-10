@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Abonnement expiré</title>
+    <style>
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <p>Bonjour {{ user.username }},</p>
+    
+    <p>Votre abonnement a expiré le <strong>{{ end_date|date:"d/m/Y" }}</strong>.</p>
+    
+    <p>
+        <a href="{{ renewal_url }}" class="button">
+            Renouveler mon abonnement
+        </a>
+    </p>
+    
+    <p>
+        Pour toute question, contactez-nous à 
+        <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.
+    </p>
+    
+    <p>Cordialement,<br>L'équipe {{ site_name }}</p>
+</body>
+</html>

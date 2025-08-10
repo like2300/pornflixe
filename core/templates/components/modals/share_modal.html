@@ -1,0 +1,32 @@
+<!-- Popup Partage -->
+<div id="share-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+    <div class="bg-gray-800 rounded-xl p-6 max-w-sm w-full animate-fade-in">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-white">Partager</h3>
+            <button onclick="closeShare()" class="text-gray-400 hover:text-white transition-colors">
+                <i class="material-icons">close</i>
+            </button>
+        </div>
+        
+        <div class="grid grid-cols-4 gap-4 mb-6">
+            <a href="#" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full flex justify-center transition-colors">
+                <i class="material-icons">facebook</i>
+            </a>
+            <a href="#" class="bg-sky-500 hover:bg-sky-600 text-white p-3 rounded-full flex justify-center transition-colors">
+                <i class="material-icons">chat</i>
+            </a>
+            <a href="#" class="bg-green-500 hover:bg-green-600 text-white p-3 rounded-full flex justify-center transition-colors">
+                <i class="material-icons">whatsapp</i>
+            </a>
+            <button onclick="copyLink()" class="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full flex justify-center transition-colors">
+                <i class="material-icons">link</i>
+            </button>
+        </div>
+        
+        <div class="flex items-center gap-2 bg-gray-700/50 rounded-full px-4 py-2">
+            <input id="share-link" type="text" value="{{ request.build_absolute_uri }}" 
+                   class="flex-1 bg-transparent text-white text-sm focus:outline-none" readonly>
+            <button onclick="copyLink()" class="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors">Copier</button>
+        </div>
+    </div>
+</div>

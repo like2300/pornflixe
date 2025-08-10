@@ -1,0 +1,5 @@
+Bonjour {{ user.username }},
+
+Votre abonnement a expiré le {{ end_date|date:"d/m/Y" }}.
+
+Renouveler : {{ renewal_url }}

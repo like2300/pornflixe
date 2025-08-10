@@ -1,0 +1,17 @@
+{% extends "baseApp.html" %}
+{% block title %}Genres{% endblock %}
+{% block content %}
+<div class="mt-16 px-4">
+  <h2 class="text-white text-4xl mb-8">{{ title }}</h2>
+  <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-6">
+    {% for genre in genres %}
+      <a href="{% url 'search' %}?q={{ genre.name }}" class="bg-[#1e1e1e] p-6 rounded-lg text-white hover:bg-[#2c2c2c] transition duration-300">
+        <h3 class="text-2xl font-bold">{{ genre.name }}</h3>
+        <p class="mt-2">{{ genre.video_count }} vidéo(s)</p>
+      </a>
+    {% empty %}
+      <p>Aucun genre disponible.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends 'baseApp.html' %}
+
+{% block content %}
+<div class="container text-center my-5">
+    <h1 class="display-4 text-warning">Paiement annulé</h1>
+    <p class="lead">Vous avez annulé votre abonnement.</p>
+    <p>Si c'était une erreur, vous pouvez réessayer.</p>
+    <a href="{% url 'subscribe' %}" class="btn btn-primary">
+        Voir les abonnements
+    </a>
+</div>
+{% endblock %}

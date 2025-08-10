@@ -1,0 +1,214 @@
+{% extends "baseApp.html" %}
+
+{% load static %}
+ 
+ 
+{% block title %}
+    Home
+{% endblock %} 
+{% block content %}
+ 
+<!-- Inclure Boxicons -->
+
+    <!-- Conteneur du Slider -->
+    <div class="gradient-border w-full h-[300px] md:h-[475px] mt-8   rounded-[23px] overflow-hidden border-none relative">
+      <div id="slider" class="relative w-full h-full bg-cover bg-center">
+        <!-- Texte dynamique -->
+        <p id="slide-text" class="absolute w-full px-4 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-['Italiana'] font-normal text-white text-[32px] md:text-[64px] lg:text-[88px] text-center leading-tight"></p>
+        
+        <!-- Dots Navigation -->
+        <div id="dots" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4 z-10"></div>
+
+        <!-- Flèches de navigation -->
+        <button id="prev" class="absolute w-12 h-12 left-4 top-1/2 transform -translate-y-1/2 text-white bg-black/50 p-2 rounded-full text-xl z-10">
+          <i class='bx bx-chevron-left'></i>
+        </button>
+        <button id="next" class="absolute right-4 w-12 h-12 top-1/2 transform -translate-y-1/2 text-white bg-black/50 p-2 rounded-full text-xl z-10">
+          <i class='bx bx-chevron-right'></i>
+        </button>
+
+        <!-- Info/Play Buttons (statique) -->
+         
+      </div>
+    </div>
+
+    <!-- Content Sections -->
+    <div class="mt-16">
+      <!-- Films et Series Section -->
+        <div class="mb-12">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8">
+            <div>
+              <h2 class="font-['Kantumruy'] font-normal text-white text-[32px] md:text-[44px] leading-tight">Film et Series</h2>
+              <p class="font-['Kantumruy'] font-normal text-white/60 text-[18px] md:text-[26px] mt-2">
+                Sexy photos · Modele sexy · Charme 
+              </p>
+            </div>
+            <button class="text-white flex items-center bg-[#a21892]  rounded-full px-4 py-2 text-sm">
+              {% comment %} voir plus {% endcomment %}
+              <h1 class="font-normal text-white text-xl  leading-tight"> Voir plus</h1>
+              <i class='bx bx-chevron-down text-2xl'></i>
+            </button>
+            
+          </div>
+          
+          <!-- First Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Item 1 -->
+            {% for video in videos %}
+                {% include "partials/_videos.html" %}
+            {% endfor %}
+             
+          </div>
+          
+      
+        </div>
+      <!-- Short Video Section -->
+        <div class="mb-12">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8">
+            <div>
+              <h2 class="font-['Kantumruy'] font-normal text-white text-[32px] md:text-[44px] leading-tight">Short Video</h2>
+              <p class="font-['Kantumruy'] font-normal text-white/60 text-[18px] md:text-[26px] mt-2">
+                Sexy photos · Modele sexy · Charme 
+              </p>
+            </div>
+            <button class="text-white flex items-center bg-[#a21892] rounded-full px-4 py-2 text-sm">
+              <h1 class="font-normal text-white text-xl leading-tight">Voir plus</h1>
+              <i class='bx bx-chevron-down text-2xl'></i>
+            </button>
+          </div>
+
+          <!-- Grid de vidéos courtes -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" id="short_videos">
+            {% for video in short_videos %}
+                {% include "partials/_short_video.html" %}
+            {% empty %}
+              <p class="text-red-400">Aucune vidéo courte disponible.</p>
+            {% endfor %}
+          </div>
+        </div>
+      <!-- Section Photos -->
+        <div class="mb-12">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8">
+            <div>
+              <h2 class="font-['Kantumruy'] font-normal text-white text-[32px] md:text-[44px] leading-tight">Photos</h2>
+              <p class="font-['Kantumruy'] font-normal text-white/60 text-[18px] md:text-[26px] mt-2">
+                Sexy photos · Modele sexy · Charme 
+              </p>
+            </div>
+            <button class="text-white flex items-center bg-[#a21892] rounded-full px-4 py-2 text-sm">
+              <h1 class="font-normal text-white text-xl leading-tight">Voir plus</h1>
+              <i class='bx bx-chevron-down text-2xl'></i>
+            </button>
+          </div>
+
+          <!-- Masonry Grid -->
+          <div class="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4">
+                {% include "partials/_photos.html" %}
+          </div>
+        </div>
+    </div>
+ 
+
+
+
+
+
+
+        <script>
+      // Tableaux des images et textes
+      {% comment %} const slides = [
+        { image: "{% static 'img/image.png' %}", text: "La Verite & La Luxure De Mes Voisin" },
+        { image: "{% static 'img/image.png' %}", text: "Un Monde Secret Derriere la Porte" },
+        { image: "{% static 'img/image.png' %}", text: "Découverte Interdite" },
+        { image: "{% static 'img/image.png' %}", text: "L'Ombre Et La Lumière" },
+        { image: "{% static 'img/image.png' %}", text: "Passions Dévorantes" },
+        { image: "{% static 'img/image.png' %}", text: "Le Jour où Tout a Changé" }
+      ]; {% endcomment %}
+
+      const host = "{{ request.get_host }}";
+
+        const slides = [
+          {% for slide in slides %}
+            { image: `{{ host }}{{ slide.film.cover_film.url }}`, text: "{{ slide.film.title }}" },
+          {% endfor %}
+        ];
+
+
+
+
+
+
+      let currentIndex = 0;
+      const slider = document.getElementById("slider");
+      const slideText = document.getElementById("slide-text");
+      const dotsContainer = document.getElementById("dots");
+      const prevBtn = document.getElementById("prev");
+      const nextBtn = document.getElementById("next");
+
+      // Créer les dots
+      function createDots() {
+        dotsContainer.innerHTML = '';
+        slides.forEach((_, index) => {
+          const dot = document.createElement('div');
+          dot.className = index === 0 
+            ? "w-4 h-4 bg-[#ba0fb49e] rounded-full cursor-pointer"
+            : "w-4 h-4 bg-white rounded-full cursor-pointer";
+          dot.addEventListener("click", () => goToSlide(index));
+          dotsContainer.appendChild(dot);
+        });
+      }
+
+      // Mettre à jour le slider
+      function updateSlider() {
+        slider.style.backgroundImage = `url('${slides[currentIndex].image}')`;
+        slideText.textContent = slides[currentIndex].text;
+
+        // Mettre à jour les dots
+        Array.from(dotsContainer.children).forEach((dot, index) => {
+          dot.className = index === currentIndex
+            ? "w-4 h-4 bg-[#ba0fb49e] rounded-full cursor-pointer"
+            : "w-4 h-4 bg-white rounded-full cursor-pointer";
+        });
+      }
+
+      // Navigation manuelle
+      function goToSlide(index) {
+        currentIndex = index;
+        updateSlider();
+      }
+
+      function nextSlide() {
+        currentIndex = (currentIndex + 1) % slides.length;
+        updateSlider();
+      }
+
+      function prevSlide() {
+        currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+        updateSlider();
+      }
+
+      // Auto-play toutes les 5 secondes
+      let autoPlayInterval = setInterval(nextSlide, 5000);
+
+      // Réinitialiser autoplay au clic
+      function resetAutoPlay() {
+        clearInterval(autoPlayInterval);
+        autoPlayInterval = setInterval(nextSlide, 5000);
+      }
+
+      // Événements
+      nextBtn.addEventListener("click", () => {
+        nextSlide();
+        resetAutoPlay();
+      });
+
+      prevBtn.addEventListener("click", () => {
+        prevSlide();
+        resetAutoPlay();
+      });
+
+      // Initialisation
+      createDots();
+      updateSlider();
+    </script> 
+{% endblock %}

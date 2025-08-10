@@ -1,0 +1,157 @@
+# Django
+*.sqlite3
+*.sqlite3-journal
+ 
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Environments
+.env
+.tar.gz
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pythonenv*
+media 
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-workspace
+*.sublime-project
+
+# Node/npm (for Tailwind CSS)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Tailwind CSS
+/dist/
+.cache/
+.temp/
+.tmp/
+
+# Static files
+/staticfiles/
+/mediafiles/
+
+# Logs and databases
+*.log
+*.pot
+*.pid
+*.gz
+*.tgz
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Local settings
+local_settings.py
+settings/local.py
+
+# Documentation
+docs/_build/
+
+# Translations
+*.mo
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# Backup files
+*.bak
+*.backup
+*.swp
+*.swo
+
+# Database migrations (uncomment if you want to ignore migrations)
+# /migrations/
+# !/migrations/__init__.py
+
+# Email files (if using file-based email backend)
+/sent_emails/
+
+# Debug toolbar
+debug_toolbar/
+
+# PyCharm
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Virtual environment
+venv/
+ENV/
+
+# Coverage reports
+.coverage
+.coverage.*
+,cover
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# SASS
+.sass-cache/
+
+# Package files
+*.py[co]
+*.so
+*.egg
+*.egg-info
+dist/
+build/

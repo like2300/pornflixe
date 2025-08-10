@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load allauth account socialaccount %}
+{% load widget_tweaks %}
+
+{% block  title %}
+    {% trans "Sign In" %}
+{% endblock   %}
+
+{% block extra_head %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style type="text/tailwindcss">
+      @layer components {
+        .input-field {
+          @apply w-full py-3 px-5 rounded-xl border-4 border-fuchsia-500 bg-transparent text-white placeholder-white/70;
+        }
+        .btn-primary {
+          @apply w-full py-3 rounded-xl bg-[#a21892] text-white text-2xl font-normal hover:bg-fuchsia-800 transition-colors;
+        }
+        .password-toggle {
+          @apply absolute right-4 top-1/2 -translate-y-1/2 text-white text-xl cursor-pointer;
+        }
+      }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="relative w-full overflow-hidden p-5">
+    <!-- Background Image -->
+    <img src="/static/img/image.png" alt="Background" class="absolute top-0 left-0 inset-0 w-full h-full object-cover" />
+    
+    <!-- Background Overlay -->
+    <div class="absolute inset-0 bg-black/50"></div>
+
+    <!-- Content Container -->
+    <div class="relative z-10 flex flex-col items-center h-screen pt-5 px-4">
+        <!-- Logo -->
+        <div class="flex flex-col items-center mb-12">
+            <div class="relative flex items-center justify-center w-[205px] h-[66px]">
+                <span class="text-white text-5xl font-normal font-['Italiana']">Flixe</span>
+                <span class="text-[#9d038b] text-5xl font-bold font-['Irish_Grover'] ml-2" style="text-shadow: 0 0 1px #ff4b4b, 0 0 1px #ff4b4b;">Porn</span>
+            </div>
+            <p class="text-white text-center text-lg mt-4 max-w-lg">
+                Sexy photos · Modele sexy · Charme · Femmes sensuelles  
+            </p>
+        </div>
+
+        <!-- Login Form -->
+        <div class="w-full max-w-md space-y-6">
+            {% url 'account_login' as login_url %}
+            <form method="post" action="{{ login_url }}" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Email Field -->
+                <div>
+                    <input 
+                        type="email" 
+                        name="login" 
+                        placeholder="your mail" 
+                        class="input-field"
+                        required
+                    >
+                </div>
+                
+                <!-- Password Field with Toggle -->
+                <div class="relative">
+                    <input 
+                        type="password" 
+                        name="password" 
+                        placeholder="Password" 
+                        class="input-field pr-12"
+                        required
+                        id="password-field"
+                    > 
+                      <i class='bx bx-hide password-toggle' onclick="togglePassword(this, 'id_password1')"></i>
+                       
+                </div>
+
+                <!-- Remember Me and Forgot Password -->
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" name="remember" id="remember" class="w-5 h-5 rounded">
+                        <label for="remember" class="text-white">{% trans "Remember me" %}</label>
+                    </div>
+                    <a href="{% url 'account_reset_password' %}" class="text-fuchsia-400 hover:underline text-sm">
+                        {% trans "Forgot password?" %}
+                    </a>
+                </div>
+                
+                <!-- Submit Button -->
+                <button type="submit" class="btn-primary">
+                    {% trans "Sign In" %}
+                </button>
+                
+                <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value|default_if_none:'' }}" />
+            </form>
+
+            {% if SOCIALACCOUNT_ENABLED %}
+              {% include "partials/sectioneur.html" %}
+                <!-- Bouton Google personnalisé -->
+                {% get_providers as socialaccount_providers %}
+                {% for provider in socialaccount_providers %}
+                    {% if provider.id == "google" %}
+                        <a href="{% provider_login_url provider.id process='login' %}" 
+                           class="btn-primary flex justify-center items-center gap-2">
+                            
+                            {% trans "Sign in with Google" %}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+
+            <p class="text-center text-white">
+                {% trans "Don't have an account?" %}
+                <a href="{% url 'account_signup' %}" class="text-fuchsia-400 hover:underline">{% trans "Sign up" %}</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+ 
+        {% block extra_body %}
+
+<script>
+    function togglePassword(icon, fieldId) {
+        const field = document.getElementById(fieldId);
+        if (field.type === "password") {
+            field.type = "text";
+            icon.classList.replace('bx-hide', 'bx-show');
+        } else {
+            field.type = "password";
+            icon.classList.replace('bx-show', 'bx-hide');
+        }
+    }
+</script>
+        {% endblock extra_body %}
+{% endblock content %}

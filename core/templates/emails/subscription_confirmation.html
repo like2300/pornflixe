@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>Confirmation d'abonnement</h1>
+    <p>Bonjour {{ user.username }},</p>
+    <p>Merci pour votre abonnement à <strong>{{ plan.name }}</strong>.</p>
+    
+    <h2>Détails de votre abonnement:</h2>
+    <ul>
+        <li>Prix: {{ plan.price }}€</li>
+        <li>Durée: {{ plan.duration_days }} jours</li>
+        <li>Date d'expiration: {{ expiration_date|date:"d/m/Y" }}</li>
+    </ul>
+    
+    <p>Pour toute question, contactez-nous à <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+    
+    <p>Cordialement,<br>L'équipe de MySite</p>
+</body>
+</html>

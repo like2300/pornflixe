@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load i18n static widget_tweaks %}
+{% load allauth account socialaccount %}
+
+{% block title %}
+    {% trans "Sign Up" %}
+{% endblock   %}
+
+{% block extra_head %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style type="text/tailwindcss">
+      @layer components {
+        .input-field {
+          @apply w-full py-3 px-5 rounded-xl border-4 border-fuchsia-500 bg-transparent text-white placeholder-white/70;
+        }
+        .btn-primary {
+          @apply w-full py-3 rounded-xl bg-[#a21892] text-white text-2xl font-normal hover:bg-fuchsia-800 transition-colors;
+        }
+      }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="relative w-full overflow-hidden p-5">
+    <!-- Background Image -->
+    <img src=" {% static 'img/image.png' %}" alt="Background" class="absolute top-0 left-0 inset-0 w-full h-full object-cover" />
+    
+    <!-- Background Overlay -->
+    <div class="absolute inset-0"></div>
+
+    <!-- Messages Popup -->
+    {% if messages %}
+    <div id="message-popup" class="fixed top-5 right-5 z-50 w-full max-w-xs">
+        <div class="bg-[#a21892] text-white rounded-xl p-4 shadow-lg border-4 border-fuchsia-500">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <strong class="text-xl font-medium">{% trans "Messages:" %}</strong>
+                    <ul class="mt-2">
+                        {% for message in messages %}
+                        <li class="text-white/90">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <button onclick="closePopup()" class="text-white hover:text-white/70">
+                    <i class='bx bx-x text-2xl'></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fermer automatiquement après 5 secondes
+        setTimeout(function() {
+            document.getElementById('message-popup').style.display = 'none';
+        }, 5000);
+        
+        // Fonction pour fermer manuellement
+        function closePopup() {
+            document.getElementById('message-popup').style.display = 'none';
+        }
+    </script>
+    {% endif %}
+
+    <!-- Content Container -->
+    <div class="relative z-10 flex flex-col items-center h-screen pt-5 px-4">
+        <!-- Logo -->
+        <div class="flex flex-col items-center mb-12">
+            <div class="relative">
+                <div class="absolute inset-0"></div>
+                <div class="relative flex items-center justify-center w-[205px] h-[66px]">
+                    <span class="text-white text-5xl font-normal font-['Italiana']">Flixe</span>
+                    <span class="text-[#9d038b] text-5xl font-bold font-['Irish_Grover'] ml-2" style="text-shadow: 0 0 1px #ff4b4b, 0 0 1px #ff4b4b;">Porn</span>
+                </div>
+            </div>
+            <p class="text-white text-center text-lg mt-4 max-w-lg">
+                Sexy photos · Modele sexy · Charme · Femmes sensuelles  
+            </p>
+        </div>
+
+        <!-- Signup Form -->
+        <div class="w-full max-w-md space-y-6">
+            {% if not SOCIALACCOUNT_ONLY %}
+                {% url 'account_signup' as action_url %}
+                <form method="post" action="{{ action_url }}" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Email Field -->
+                    <div>
+                        {% render_field form.email class="input-field" placeholder="your mail" %}
+                        {% if form.email.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ form.email.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Password Field -->
+                    <div class="relative">
+                        {% render_field form.password1 class="input-field pr-12" placeholder="Password" %}
+                        {% if form.password1.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ form.password1.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Password Confirmation -->
+                    <div class="relative">
+
+                        {% render_field form.password2 class="input-field pr-12" placeholder="Confirm Password" %}
+                        
+                        {% if form.password2.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ form.password2.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Terms Checkbox -->
+                    {% if form.terms %}
+                    <div class="flex items-center gap-3 ml-2">
+                        {% render_field form.terms class="w-5 h-5 rounded" %}
+                        <label for="{{ form.terms.id_for_label }}" class="text-white">
+                            {% trans "I accept the terms and conditions" %}
+                        </label>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn-primary">
+                        {% trans "Create Account" %}
+                    </button>
+                    
+                    <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+                </form>
+            {% endif %}
+
+            {% if SOCIALACCOUNT_ENABLED %} 
+               
+              {% include "partials/sectioneur.html" %}
+                
+                <!-- Bouton Google personnalisé -->
+                {% get_providers as socialaccount_providers %}
+                {% for provider in socialaccount_providers %}
+                    {% if provider.id == "google" %}
+                        <a href="{% provider_login_url provider.id process='login' %}" 
+                           class="btn-primary flex justify-center items-center gap-2">
+                            <i class='bx bx-google-plus-circle'></i>
+                            {% trans "Sign up with Google" %}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+
+            <p class="text-center text-white">
+                {% trans "Already have an account?" %}
+                <a href="{{ login_url }}" class="text-fuchsia-400 hover:underline">{% trans "Sign in" %}</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+        {% block extra_body %}
+
+<script>
+    function togglePassword(icon, fieldId) {
+        const field = document.getElementById(fieldId);
+        if (field.type === "password") {
+            field.type = "text";
+            icon.classList.replace('bx-hide', 'bx-show');
+        } else {
+            field.type = "password";
+            icon.classList.replace('bx-show', 'bx-hide');
+        }
+    }
+</script>
+        {% endblock extra_body %}
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "baseApp.html" %}
+{% block title %}Photos{% endblock %}
+{% block content %}
+<div class="mt-16 px-4">
+  <h2 class="text-white text-4xl mb-8">Photos</h2>
+  <div class="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4">
+    
+    {% include "partials/_photos.html" %}
+  </div>
+ 
+</div>
+{% endblock %}

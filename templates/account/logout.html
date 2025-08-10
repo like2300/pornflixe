@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load i18n static widget_tweaks %}
+{% load allauth account %}
+
+{% block  title %}
+    {% trans "Sign Out" %}
+{% endblock   %}
+
+{% block extra_head %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style type="text/tailwindcss">
+      @layer components {
+        .input-field {
+          @apply w-full py-3 px-5 rounded-xl border-4 border-fuchsia-500 bg-transparent text-white placeholder-white/70;
+        }
+        .btn-primary {
+          @apply w-full py-3 rounded-xl bg-[#a21892] text-white text-2xl font-normal hover:bg-fuchsia-800 transition-colors;
+        }
+        .btn-secondary {
+          @apply w-full py-3 rounded-xl border-4 border-fuchsia-500 text-white text-2xl font-normal hover:bg-fuchsia-500/20 transition-colors;
+        }
+      }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="relative w-full overflow-hidden p-5">
+    <!-- Background Image -->
+    <img src=" {% static 'img/image.png' %}" alt="Background" class="absolute top-0 left-0 inset-0 w-full h-full object-cover" />
+    
+    <!-- Background Overlay -->
+    <div class="absolute inset-0 bg-black/60"></div>
+
+    <!-- Content Container -->
+    <div class="relative z-10 flex flex-col items-center justify-center h-screen px-4">
+        <!-- Logo -->
+        <div class="flex flex-col items-center mb-12">
+            <div class="relative flex items-center justify-center w-[205px] h-[66px]">
+                <span class="text-white text-5xl font-normal font-['Italiana']">Flixe</span>
+                <span class="text-[#9d038b] text-5xl font-bold font-['Irish_Grover'] ml-2" style="text-shadow: 0 0 1px #ff4b4b, 0 0 1px #ff4b4b;">Porn</span>
+            </div>
+        </div>
+
+        <!-- Logout Form -->
+        <div class="w-full max-w-md p-8 rounded-2xl bg-black/70 backdrop-blur-sm border-4 border-fuchsia-500 space-y-6">
+            <h1 class="text-white text-3xl font-bold text-center">
+                {% trans "Sign Out" %}
+            </h1>
+            
+            <p class="text-white text-center text-lg">
+                {% trans 'Are you sure you want to sign out?' %}
+            </p>
+
+            {% url 'account_logout' as action_url %}
+            <form method="post" action="{{ action_url }}" class="space-y-6">
+                {% csrf_token %}
+                {% if redirect_field_value %}
+                    <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+                {% endif %}
+                
+                <div class="flex flex-col space-y-4">
+                    <button type="submit" class="btn-primary">
+                        {% trans 'Sign Out' %}
+                    </button>
+                    
+                    <a href="/" class="btn-secondary text-center">
+                        {% trans 'Cancel' %}
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

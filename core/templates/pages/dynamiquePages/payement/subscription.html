@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Payer {{ object.name }}{% endblock %}
+{% block content %}
+<div class="container my-5 text-center">
+  <h1>{{ object.name }}</h1>
+  <p class="lead">{{ object.description|default:"" }}</p>
+  <h3 class="mb-4">{{ object.price }} €</h3>
+
+  <div class="d-flex justify-content-center">
+    {{ form.render }}  <!-- le bouton PayPal généré par django-paypal -->
+  </div>
+
+  <p class="mt-4">
+    <a href="{% url 'subscribe' %}" class="text-muted small">← Retour aux abonnements</a>
+  </p>
+</div>
+{% endblock %}
