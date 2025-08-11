@@ -176,7 +176,6 @@ class MediaType(models.Model):
     def __str__(self):
         return self.name
  
-
 class Video(models.Model):
     title = models.CharField(max_length=255)
     cover_film = models.ImageField(upload_to='films/')
@@ -189,9 +188,30 @@ class Video(models.Model):
     favorites = models.ManyToManyField(User, related_name='favorite_videos', blank=True)
     comments = models.ManyToManyField('Comment', related_name='videos', blank=True)
 
+    # Champs ajoutés pour la publication
+    publish_date = models.DateTimeField(blank=True, null=True, verbose_name="Date de publication")
+    is_featured = models.BooleanField(default=False, verbose_name="Mis en avant")
+
     def __str__(self):
         return self.title
-    
+
+    @property
+    def is_published(self):
+        """Retourne True si la vidéo est publiée et la date est atteinte"""
+        from django.utils import timezone
+        return self.publish_date is not None and self.publish_date <= timezone.now()
+
+    def publish(self):
+        """Publier maintenant"""
+        from django.utils import timezone
+        self.publish_date = timezone.now()
+        self.save(update_fields=['publish_date'])
+
+    def unpublish(self):
+        """Dépublier"""
+        self.publish_date = None
+        self.save(update_fields=['publish_date'])
+
     def get_time_ago(self):
         now = timezone.now()
         delta = now - self.created_at
@@ -209,7 +229,7 @@ class Video(models.Model):
         elif delta.seconds > 60:
             return f"{delta.seconds // 60} min"
         else:
-            return "maintenant"  
+            return "maintenant"
 
 class Photo(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True)
@@ -223,9 +243,28 @@ class Photo(models.Model):
     favorites = models.ManyToManyField(User, related_name='favorite_photos', blank=True)
     comments = models.ManyToManyField('Comment', related_name='photo', blank=True)
 
+    # Champs ajoutés pour la publication
+    publish_date = models.DateTimeField(blank=True, null=True, verbose_name="Date de publication")
+    is_featured = models.BooleanField(default=False, verbose_name="Mis en avant")
+
     def __str__(self):
         return self.title or "Photo sans titre"
-    
+
+    @property
+    def is_published(self):
+        """Retourne True si la photo est publiée et que la date est atteinte"""
+        return self.publish_date is not None and self.publish_date <= timezone.now()
+
+    def publish(self):
+        """Publier maintenant"""
+        self.publish_date = timezone.now()
+        self.save(update_fields=['publish_date'])
+
+    def unpublish(self):
+        """Dépublier"""
+        self.publish_date = None
+        self.save(update_fields=['publish_date'])
+
     def get_time_ago(self):
         now = timezone.now()
         delta = now - self.created_at
@@ -244,7 +283,7 @@ class Photo(models.Model):
             return f"{delta.seconds // 60} minute(s)"
         else:
             return "maintenant"
-     
+
 
 
 class Slide(models.Model):

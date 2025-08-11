@@ -671,3 +671,32 @@ class SuccessView(LoginRequiredMixin, BaseContextMixin, TemplateView):
             logger.info(f"Email de confirmation envoyé à {user.email}")
         except Exception as e:
             logger.error(f"Erreur envoi email confirmation: {str(e)}")
+
+
+
+
+
+
+
+
+
+def admin_dashboard(request):
+    # Statistiques (tu peux les adapter)
+    new_videos_count = Video.objects.filter(publish_date__lte=timezone.now()).count()
+    active_subscriptions_count = UserSubscription.objects.filter(is_active=True).count()
+    total_favorites = request.user.favorite_videos.count()  # Exemple stat perso
+
+    # Vidéos récentes publiées (limitées à 5)
+    recent_videos = Video.objects.filter(publish_date__lte=timezone.now()).order_by('-publish_date')[:5]
+
+    # Abonnements actifs (limité à 5)
+    active_subscriptions = UserSubscription.objects.filter(is_active=True).order_by('end_date')[:5]
+
+    context = {
+        'new_videos_count': new_videos_count,
+        'active_subscriptions_count': active_subscriptions_count,
+        'total_favorites': total_favorites,
+        'recent_videos': recent_videos,
+        'active_subscriptions': active_subscriptions,
+    }
+    return render(request, 'administa/base.html', context)

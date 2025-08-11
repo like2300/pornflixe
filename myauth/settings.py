@@ -158,15 +158,11 @@ if not DEBUG:
     AWS_S3_REGION_NAME = 'us-east-1'
     AWS_DEFAULT_ACL = None
     AWS_S3_VERITY = True 
- 
-
 
     # Augmentez ces valeurs selon vos besoins (exemple pour 500MB)
     DATA_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500MB
     FILE_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500MB
-
-    # Pour les fichiers très volumineux (>2.5MB), Django utilise un fichier temporaire
-    FILE_UPLOAD_TEMP_DIR = os.path.join(BASE_DIR, 'tmp')
+    
     FILE_UPLOAD_PERMISSIONS = 0o644
 
 # paypal

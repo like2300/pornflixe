@@ -1,0 +1,230 @@
+{% load static %} 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<!-- Boxicons -->
+	<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+	<link href='https://unpkg.com/boxicons@2.1.4/dist/boxicons.js' rel='stylesheet'>
+
+	<!-- My CSS -->
+	<link rel="stylesheet" href="{% static 'style.css' %}">
+
+	<title>AdminHub</title>
+</head>
+<body>
+<!-- SIDEBAR -->
+<section id="sidebar">
+    <a href="{% url 'admin_dashboard' %}" class="brand">
+        <i class='bx bxs-smile  bx-lg'></i>
+        <span class="text">AdminHub</span>
+    </a>
+    <ul class="side-menu top">
+        <li class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <a href="{% url 'admin_dashboard' %}">
+                <i class='bx bxs-dashboard bx-sm' ></i>
+                <span class="text">Dashboard</span>
+            </a>
+        </li>
+        <li class="{% if request.resolver_match.url_name == 'store' %}active{% endif %}">
+            <a href=" ">
+                <i class='bx bxs-shopping-bag-alt bx-sm' ></i>
+                <span class="text">My Store</span>
+            </a>
+        </li>
+        <li class="{% if request.resolver_match.url_name == 'analytics' %}active{% endif %}">
+            <a href=" ">
+                <i class='bx bxs-doughnut-chart bx-sm' ></i>
+                <span class="text">Analytics</span>
+            </a>
+        </li>
+        <li class="{% if request.resolver_match.url_name == 'messages' %}active{% endif %}">
+            <a href=" ">
+                <i class='bx bxs-message-dots bx-sm' ></i>
+                <span class="text">Message</span>
+            </a>
+        </li>
+        
+    </ul>
+    <ul class="side-menu bottom">
+       
+        <li>
+            <a href="{% url 'update_username' %}">
+                <i class='bx bx-power-off bx-sm bx-burst-hover' ></i>
+                <span class="text">Logout</span>
+            </a>
+        </li>
+    </ul>
+    <div class="sidebar-user">
+        <p>Connecté : <strong>{{ request.user.username }}</strong></p>
+    </div>
+</section>
+<!-- SIDEBAR -->
+
+
+	<!-- CONTENT -->
+	<section id="content">
+		<!-- NAVBAR -->
+<nav>
+    <i class='bx bx-menu bx-sm' ></i>
+    <a href="#" class="nav-link">Categories</a>
+    <form action="#">
+        <div class="form-input">
+            <input type="search" placeholder="Search...">
+            <button type="submit" class="search-btn"><i class='bx bx-search' ></i></button>
+        </div>
+    </form>
+    <input type="checkbox" class="checkbox" id="switch-mode" hidden />
+    <label class="swith-lm" for="switch-mode">
+        <i class="bx bxs-moon"></i>
+        <i class="bx bx-sun"></i>
+        <div class="ball"></div>
+    </label>
+
+    <!-- Notification Bell -->
+    <a href="#" class="notification" id="notificationIcon">
+        <i class='bx bxs-bell bx-tada-hover' ></i>
+        <span class="num">8</span>
+    </a>
+    <div class="notification-menu" id="notificationMenu">
+        <ul>
+            <li>New message from John</li>
+            <li>Your order has been shipped</li>
+            <li>New comment on your post</li>
+            <li>Update available for your app</li>
+            <li>Reminder: Meeting at 3PM</li>
+        </ul>
+    </div>
+
+    <!-- Profile Menu -->
+    <a href="#" class="profile" id="profileIcon">
+        <img src="https://placehold.co/600x400/png" alt="Profile">
+    </a>
+    <div class="profile-menu" id="profileMenu">
+        <ul>
+            <li><a href="#">My Profile</a></li>
+            <li><a href="#">Settings</a></li>
+            <li><a href="#">Log Out</a></li>
+        </ul>
+    </div>
+</nav>
+<!-- NAVBAR -->
+
+
+		<!-- MAIN -->
+		<!-- MAIN -->
+<main>
+    <div class="head-title">
+        <div class="left">
+            <h1>Dashboard</h1>
+            <ul class="breadcrumb">
+                <li>
+                    <a href="#">Dashboard</a>
+                </li>
+                <li><i class='bx bx-chevron-right'></i></li>
+                <li>
+                    <a class="active" href="#">Home</a>
+                </li>
+            </ul>
+        </div>
+        <a href="#" class="btn-download">
+            <i class='bx bxs-cloud-download bx-fade-down-hover'></i>
+            <span class="text">Get PDF</span>
+        </a>
+    </div>
+
+    <ul class="box-info">
+        <li>
+            <i class='bx bxs-video'></i>
+            <span class="text">
+                <h3>{{ new_videos_count }}</h3>
+                <p>Published Videos</p>
+            </span>
+        </li>
+        <li>
+            <i class='bx bxs-user-account'></i>
+            <span class="text">
+                <h3>{{ active_subscriptions_count }}</h3>
+                <p>Active Subscriptions</p>
+            </span>
+        </li>
+        <li>
+            <i class='bx bxs-star'></i>
+            <span class="text">
+                <h3>{{ total_favorites }}</h3>
+                <p>Your Favorites</p>
+            </span>
+        </li>
+    </ul>
+
+    <div class="table-data">
+        <div class="order">
+            <div class="head">
+                <h3>Recent Videos</h3>
+                <i class='bx bx-search'></i>
+                <i class='bx bx-filter'></i>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Published</th>
+                        <th>Views</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for video in recent_videos %}
+                    <tr>
+                        <td>
+                            <img src="{{ video.cover_film.url }}" alt="{{ video.title }}" style="width:40px; height:30px; border-radius:5px;">
+                            <p>{{ video.title }}</p>
+                        </td>
+                        <td>{{ video.publish_date|date:"d-m-Y" }}</td>
+                        <td>{{ video.views }}</td>
+                        <td>
+                            {% if video.is_published %}
+                                <span class="status completed">Published</span>
+                            {% else %}
+                                <span class="status pending">Pending</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4">No videos found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="todo">
+            <div class="head">
+                <h3>Active Subscriptions</h3>
+                <i class='bx bx-filter'></i>
+            </div>
+            <ul class="todo-list">
+                {% for sub in active_subscriptions %}
+                <li class="completed">
+                    <p>User: {{ sub.user.username }} - Plan: {{ sub.plan.name }}</p>
+                    <p>Expires: {{ sub.end_date|date:"d-m-Y" }}</p>
+                </li>
+                {% empty %}
+                <li>No active subscriptions found.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</main>
+<!-- MAIN -->
+
+		<!-- MAIN -->
+	</section>
+	<!-- CONTENT -->
+	
+
+	<script src="{% static 'script.js' %}"></script>
+</body>
+</html>            

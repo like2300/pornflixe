@@ -47,6 +47,7 @@ urlpatterns = [
     path('account/', include(user_interaction_urlpatterns)),
     path('subscription/', include(payment_urlpatterns)),
     path('support/contact/', contact_support, name='contact_support'),
+    path('config/', admin_dashboard, name='admin_dashboard'),
 ]
 
 # ================= Fichiers Statiques (Développement) ===============================

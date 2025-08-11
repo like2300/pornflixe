@@ -1,5 +1,9 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe 
+
+from django.utils import timezone  # ✅ Manquant
 from .models import (
     SubscriptionPlan,
     Comment,
@@ -11,6 +15,8 @@ from .models import (
     Photo,
     Slide,
 )
+
+
 
 @admin.register(SubscriptionPlan)
 class SubscriptionPlanAdmin(ModelAdmin):
@@ -75,6 +81,8 @@ class GenreAdmin(ModelAdmin):
         return obj.video_set.count()
     video_count.short_description = 'Nombre de vidéos'
 
+# ---------------------- Autres Admins inchangés ----------------------
+
 @admin.register(MediaType)
 class MediaTypeAdmin(ModelAdmin):
     list_display = ('name', 'slug', 'film_count', 'photo_count')
@@ -82,24 +90,33 @@ class MediaTypeAdmin(ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
 
     def film_count(self, obj):
-        return obj.films.count()
+        return obj.videos.count()  # ✅ corrigé si related_name='videos'
     film_count.short_description = 'Vidéos'
 
     def photo_count(self, obj):
         return obj.photos.count()
     photo_count.short_description = 'Photos'
 
+
+
+# ---------------------- VideoAdmin ----------------------
+
 @admin.register(Video)
 class VideoAdmin(ModelAdmin):
-    list_display = ('title', 'views', 'created_at', 'types_list', 'genre_list')
-    list_filter = ('types', 'genre', 'created_at')
+    list_display = ('title', 'views', 'created_at', 'is_published',   'cover_preview', 'types_list', 'genre_list')
+    list_filter = ('types', 'genre', 'created_at')  # ✅ retiré is_published s'il n'existe pas en champ
     search_fields = ('title', 'description')
     filter_horizontal = ('types', 'genre', 'favorites')
-    readonly_fields = ('views',)
+    readonly_fields = ('views',   'cover_preview')
     date_hierarchy = 'created_at'
+    actions = ['publish_selected', 'unpublish_selected']
+
     fieldsets = (
-        (None, {
-            'fields': ('title', 'description', 'video', 'cover_film')
+        ('Informations principales', {
+            'fields': ('title', 'description', 'publish_date')  # ✅ retiré is_published si c'est une méthode
+        }),
+        ('Fichiers médias', {
+            'fields': ('video',   'cover_film', 'cover_preview')
         }),
         ('Métadonnées', {
             'fields': ('types', 'genre', 'views')
@@ -110,31 +127,92 @@ class VideoAdmin(ModelAdmin):
         }),
     )
 
+    def is_published(self, obj):
+        return obj.publish_date is not None and obj.publish_date <= timezone.now()
+    is_published.boolean = True
+    is_published.short_description = 'Publié'
+
+    # def video_preview(self, obj):
+    #     if obj.video:
+    #         return format_html(
+    #             '<video width="150" controls>'
+    #             '<source src="{}" type="video/mp4">'
+    #             'Votre navigateur ne supporte pas la lecture vidéo.'
+    #             '</video>', obj.video.url
+    #         )
+    #     return "Pas de vidéo"
+
+    def cover_preview(self, obj):
+        if obj.cover_film:
+            return format_html('<img src="{}" style="width:100px;  height:60px; border-radius:10px;" />', obj.cover_film.url)
+        return "Pas de couverture"
+
     def types_list(self, obj):
         return ", ".join([t.name for t in obj.types.all()])
-    types_list.short_description = 'Types'
 
     def genre_list(self, obj):
         return ", ".join([g.name for g in obj.genre.all()])
-    genre_list.short_description = 'Genres'
+
+    def publish_selected(self, request, queryset):
+        queryset.update(publish_date=timezone.now())
+        self.message_user(request, f"{queryset.count()} vidéos publiées avec succès.")
+
+    def unpublish_selected(self, request, queryset):
+        queryset.update(publish_date=None)
+        self.message_user(request, f"{queryset.count()} vidéos dépubliées.")
+
+
+# ---------------------- PhotoAdmin ----------------------
 
 @admin.register(Photo)
 class PhotoAdmin(ModelAdmin):
-    list_display = ('title', 'views', 'created_at', 'types_list', 'genre_list')
-    list_filter = ('types', 'genre', 'created_at')
+    list_display = ('title', 'views', 'created_at', 'is_published', 'image_preview', 'types_list', 'genre_list')
+    list_filter = ('types', 'genre', 'created_at')  # ✅ retiré is_published s'il n'est pas un champ
     search_fields = ('title', 'description')
     filter_horizontal = ('types', 'genre', 'favorites', 'like')
-    readonly_fields = ('views',)
+    readonly_fields = ('views', 'image_preview')
     date_hierarchy = 'created_at'
+    actions = ['publish_selected', 'unpublish_selected']
+
+    fieldsets = (
+        ('Informations principales', {
+            'fields': ('title', 'description', 'publish_date')  # ✅ retiré is_published & is_featured si absents
+        }),
+        ('Fichiers médias', {
+            'fields': ('image', 'image_preview')
+        }),
+        ('Métadonnées', {
+            'fields': ('types', 'genre', 'views')
+        }),
+        ('Interactions', {
+            'fields': ('favorites', 'like', 'comments'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def is_published(self, obj):
+        return obj.publish_date is not None and obj.publish_date <= timezone.now()
+    is_published.boolean = True
+    is_published.short_description = 'Publié'
+
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="width:150px; height:auto;" />', obj.image.url)
+        return "Pas d'image"
 
     def types_list(self, obj):
         return ", ".join([t.name for t in obj.types.all()])
-    types_list.short_description = 'Types'
 
     def genre_list(self, obj):
         return ", ".join([g.name for g in obj.genre.all()])
-    genre_list.short_description = 'Genres'
 
+    def publish_selected(self, request, queryset):
+        queryset.update(publish_date=timezone.now())
+        self.message_user(request, f"{queryset.count()} photos publiées avec succès.")
+
+    def unpublish_selected(self, request, queryset):
+        queryset.update(publish_date=None)
+        self.message_user(request, f"{queryset.count()} photos dépubliées.")
 @admin.register(Slide)
 class SlideAdmin(ModelAdmin):
     list_display = ('film', 'film_views')
