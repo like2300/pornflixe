@@ -149,22 +149,44 @@ CSRF_TRUSTED_ORIGINS = config(
 
 # # For production on Render
 if not DEBUG:
+    # === STOCKAGE S3 ===
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'  # Pour collectstatic
+
+    # === CREDENTIALS AWS ===
     AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME =  'pornflixe-media'  
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_S3_SIGNATURE_VERSION = 's3v4'
-    AWS_S3_REGION_NAME = 'us-east-1'
-    AWS_DEFAULT_ACL = None
-    AWS_S3_VERIFY = True  
+    AWS_STORAGE_BUCKET_NAME = 'pornflixvideo'  # ✅ Nom corrigé
+    AWS_S3_REGION_NAME = 'eu-north-1'  # ✅ Région Stockholm
 
-    # Augmentez ces valeurs selon vos besoins (exemple pour 500MB)
-    DATA_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500MB
-    FILE_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500MB
+    # === PARAMÈTRES S3 RECOMMANDÉS ===
+    AWS_S3_FILE_OVERWRITE = False  # ✅ Évite l'écrasement des fichiers
+    AWS_S3_SIGNATURE_VERSION = 's3v4'  # ✅ Obligatoire pour eu-north-1
+    AWS_S3_VERIFY = True  # ✅ Correction : pas "VERITY"
     
-    FILE_UPLOAD_PERMISSIONS = 0o644
+    # === ACL & PERMISSIONS ===
+    AWS_DEFAULT_ACL = 'public-read'  # ✅ Pour que les fichiers soient accessibles publiquement
+    # OU utilisez 'private' si vous gérez l'accès via URLs signées
 
+    # === URLS CUSTOM POUR DE MEILLEURES PERFS ===
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+    STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+
+    # === TAILLE MAX DES UPLOADS (500MB) ===
+    DATA_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500 Mo
+    FILE_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500 Mo
+
+    # === PERMISSIONS DES FICHIERS UPLODÉS ===
+    FILE_UPLOAD_PERMISSIONS = 0o644  # Lecture publique
+    FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
+
+    # === OPTIONNEL : TIMEOUT & RETRY ===
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',  # Cache 1 jour
+    }
+    AWS_QUERYSTRING_AUTH = False  # ✅ URLs propres (pas de signature dans l'URL)
+    AWS_S3_MAX_MEMORY_SIZE = 1024 * 1024 * 10  # 10 Mo max en mémoire avant écriture disque
 # paypal
   
 PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID')
