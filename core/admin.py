@@ -1,9 +1,9 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 from django.utils.html import format_html
-from django.utils.safestring import mark_safe 
+from django.utils.safestring import mark_safe
+from django.utils import timezone
 
-from django.utils import timezone  # ✅ Manquant
 from .models import (
     SubscriptionPlan,
     Comment,
@@ -17,17 +17,25 @@ from .models import (
 )
 
 
+# ============================================
+# ✅ SubscriptionPlanAdmin
+# ============================================
 
 @admin.register(SubscriptionPlan)
 class SubscriptionPlanAdmin(ModelAdmin):
-    list_display = ('name', 'price', 'duration_days', 'description_short')
+    list_display = ('name', 'price', 'duration_days', 'is_active', 'description_short')
     search_fields = ('name', 'description')
-    list_filter = ('price',)
+    list_filter = ('price', 'is_active')
     ordering = ('price',)
 
     def description_short(self, obj):
         return obj.description[:50] + '...' if obj.description else ''
     description_short.short_description = 'Description'
+
+
+# ============================================
+# ✅ CommentAdmin
+# ============================================
 
 @admin.register(Comment)
 class CommentAdmin(ModelAdmin):
@@ -40,6 +48,11 @@ class CommentAdmin(ModelAdmin):
     def text_short(self, obj):
         return obj.text[:50] + '...' if obj.text else ''
     text_short.short_description = 'Commentaire'
+
+
+# ============================================
+# ✅ UserSubscriptionAdmin
+# ============================================
 
 @admin.register(UserSubscription)
 class UserSubscriptionAdmin(ModelAdmin):
@@ -58,11 +71,20 @@ class UserSubscriptionAdmin(ModelAdmin):
         return obj.days_remaining
     days_remaining.short_description = 'Jours restants'
 
+    @admin.action(description="Vérifier le statut des abonnements sélectionnés")
     def check_status(self, request, queryset):
+        updated = 0
         for subscription in queryset:
-            subscription.check_status()
-        self.message_user(request, f"Statut vérifié pour {queryset.count()} abonnements")
-    check_status.short_description = "Vérifier le statut des abonnements sélectionnés"
+            was_active = subscription.is_active
+            subscription.check_status()  # Met à jour is_active
+            if subscription.is_active != was_active:
+                updated += 1
+        self.message_user(request, f"Statut vérifié pour {queryset.count()} abonnements. {updated} mis à jour.")
+
+
+# ============================================
+# ✅ FavoriteAdmin
+# ============================================
 
 @admin.register(Favorite)
 class FavoriteAdmin(ModelAdmin):
@@ -72,16 +94,28 @@ class FavoriteAdmin(ModelAdmin):
     raw_id_fields = ('user',)
     date_hierarchy = 'created_at'
 
+
+# ============================================
+# ✅ GenreAdmin
+# ============================================
+
 @admin.register(Genre)
 class GenreAdmin(ModelAdmin):
-    list_display = ('name', 'video_count')
+    list_display = ('name', 'video_count', 'photo_count')
     search_fields = ('name',)
 
     def video_count(self, obj):
         return obj.video_set.count()
-    video_count.short_description = 'Nombre de vidéos'
+    video_count.short_description = 'Vidéos'
 
-# ---------------------- Autres Admins inchangés ----------------------
+    def photo_count(self, obj):
+        return obj.photo_set.count()
+    photo_count.short_description = 'Photos'
+
+
+# ============================================
+# ✅ MediaTypeAdmin
+# ============================================
 
 @admin.register(MediaType)
 class MediaTypeAdmin(ModelAdmin):
@@ -90,36 +124,36 @@ class MediaTypeAdmin(ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
 
     def film_count(self, obj):
-        return obj.videos.count()  # ✅ corrigé si related_name='videos'
+        return obj.films.count()  # ✅ 'films' car related_name='films' dans Video
     film_count.short_description = 'Vidéos'
 
     def photo_count(self, obj):
-        return obj.photos.count()
+        return obj.photos.count()  # ✅ 'photos' car related_name='photos' dans Photo
     photo_count.short_description = 'Photos'
 
-
-
-# ---------------------- VideoAdmin ----------------------
+# ============================================
+# ✅ VideoAdmin
+# ============================================
 
 @admin.register(Video)
 class VideoAdmin(ModelAdmin):
-    list_display = ('title', 'views', 'created_at', 'is_published',   'cover_preview', 'types_list', 'genre_list')
-    list_filter = ('types', 'genre', 'created_at')  # ✅ retiré is_published s'il n'existe pas en champ
+    list_display = ('title', 'views', 'created_at', 'is_published', 'cover_preview', 'types_list', 'genre_list')
+    list_filter = ('types', 'genre', 'created_at')
     search_fields = ('title', 'description')
     filter_horizontal = ('types', 'genre', 'favorites')
-    readonly_fields = ('views',   'cover_preview')
+    readonly_fields = ('views', 'cover_preview', 'created_at')
     date_hierarchy = 'created_at'
     actions = ['publish_selected', 'unpublish_selected']
 
     fieldsets = (
         ('Informations principales', {
-            'fields': ('title', 'description', 'publish_date')  # ✅ retiré is_published si c'est une méthode
+            'fields': ('title', 'description', 'publish_date')
         }),
         ('Fichiers médias', {
-            'fields': ('video',   'cover_film', 'cover_preview')
+            'fields': ('video', 'cover_film', 'cover_preview')
         }),
         ('Métadonnées', {
-            'fields': ('types', 'genre', 'views')
+            'fields': ('types', 'genre', 'views', 'created_at')
         }),
         ('Interactions', {
             'fields': ('favorites', 'comments'),
@@ -132,57 +166,57 @@ class VideoAdmin(ModelAdmin):
     is_published.boolean = True
     is_published.short_description = 'Publié'
 
-    # def video_preview(self, obj):
-    #     if obj.video:
-    #         return format_html(
-    #             '<video width="150" controls>'
-    #             '<source src="{}" type="video/mp4">'
-    #             'Votre navigateur ne supporte pas la lecture vidéo.'
-    #             '</video>', obj.video.url
-    #         )
-    #     return "Pas de vidéo"
-
     def cover_preview(self, obj):
         if obj.cover_film:
-            return format_html('<img src="{}" style="width:100px;  height:60px; border-radius:10px;" />', obj.cover_film.url)
+            return format_html(
+                '<img src="{}" style="width:100px; height:60px; border-radius:10px;" />',
+                obj.cover_film.url
+            )
         return "Pas de couverture"
+    cover_preview.short_description = "Aperçu"
 
     def types_list(self, obj):
         return ", ".join([t.name for t in obj.types.all()])
+    types_list.short_description = "Types"
 
     def genre_list(self, obj):
         return ", ".join([g.name for g in obj.genre.all()])
+    genre_list.short_description = "Genres"
 
+    @admin.action(description="Publier les vidéos sélectionnées")
     def publish_selected(self, request, queryset):
-        queryset.update(publish_date=timezone.now())
-        self.message_user(request, f"{queryset.count()} vidéos publiées avec succès.")
+        updated = queryset.filter(publish_date__isnull=True).update(publish_date=timezone.now())
+        self.message_user(request, f"{updated} vidéos publiées.")
 
+    @admin.action(description="Dépublier les vidéos sélectionnées")
     def unpublish_selected(self, request, queryset):
-        queryset.update(publish_date=None)
-        self.message_user(request, f"{queryset.count()} vidéos dépubliées.")
+        updated = queryset.filter(publish_date__isnull=False).update(publish_date=None)
+        self.message_user(request, f"{updated} vidéos dépubliées.")
 
 
-# ---------------------- PhotoAdmin ----------------------
+# ============================================
+# ✅ PhotoAdmin
+# ============================================
 
 @admin.register(Photo)
 class PhotoAdmin(ModelAdmin):
     list_display = ('title', 'views', 'created_at', 'is_published', 'image_preview', 'types_list', 'genre_list')
-    list_filter = ('types', 'genre', 'created_at')  # ✅ retiré is_published s'il n'est pas un champ
+    list_filter = ('types', 'genre', 'created_at')
     search_fields = ('title', 'description')
     filter_horizontal = ('types', 'genre', 'favorites', 'like')
-    readonly_fields = ('views', 'image_preview')
+    readonly_fields = ('views', 'image_preview', 'created_at')
     date_hierarchy = 'created_at'
     actions = ['publish_selected', 'unpublish_selected']
 
     fieldsets = (
         ('Informations principales', {
-            'fields': ('title', 'description', 'publish_date')  # ✅ retiré is_published & is_featured si absents
+            'fields': ('title', 'description', 'publish_date')
         }),
         ('Fichiers médias', {
             'fields': ('image', 'image_preview')
         }),
         ('Métadonnées', {
-            'fields': ('types', 'genre', 'views')
+            'fields': ('types', 'genre', 'views', 'created_at')
         }),
         ('Interactions', {
             'fields': ('favorites', 'like', 'comments'),
@@ -197,27 +231,50 @@ class PhotoAdmin(ModelAdmin):
 
     def image_preview(self, obj):
         if obj.image:
-            return format_html('<img src="{}" style="width:150px; height:auto;" />', obj.image.url)
+            return format_html(
+                '<img src="{}" style="width:150px; height:auto;" />',
+                obj.image.url
+            )
         return "Pas d'image"
+    image_preview.short_description = "Aperçu"
 
     def types_list(self, obj):
         return ", ".join([t.name for t in obj.types.all()])
+    types_list.short_description = "Types"
 
     def genre_list(self, obj):
         return ", ".join([g.name for g in obj.genre.all()])
+    genre_list.short_description = "Genres"
 
+    @admin.action(description="Publier les photos sélectionnées")
     def publish_selected(self, request, queryset):
-        queryset.update(publish_date=timezone.now())
-        self.message_user(request, f"{queryset.count()} photos publiées avec succès.")
+        updated = queryset.filter(publish_date__isnull=True).update(publish_date=timezone.now())
+        self.message_user(request, f"{updated} photos publiées.")
 
+    @admin.action(description="Dépublier les photos sélectionnées")
     def unpublish_selected(self, request, queryset):
-        queryset.update(publish_date=None)
-        self.message_user(request, f"{queryset.count()} photos dépubliées.")
+        updated = queryset.filter(publish_date__isnull=False).update(publish_date=None)
+        self.message_user(request, f"{updated} photos dépubliées.")
+
+
+# ============================================
+# ✅ SlideAdmin
+# ============================================
+
 @admin.register(Slide)
 class SlideAdmin(ModelAdmin):
-    list_display = ('film', 'film_views')
+    list_display = ('film', 'film_views', 'film_cover')
     search_fields = ('film__title',)
 
     def film_views(self, obj):
         return obj.film.views
     film_views.short_description = 'Vues'
+
+    def film_cover(self, obj):
+        if obj.film.cover_film:
+            return format_html(
+                '<img src="{}" style="width:60px; height:40px; border-radius:8px;" />',
+                obj.film.cover_film.url
+            )
+        return "Pas de couverture"
+    film_cover.short_description = "Couverture"

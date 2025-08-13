@@ -1,115 +1,128 @@
 {% extends "baseApp.html" %}
-
 {% load static %}
- 
- 
-{% block title %}
-    Home
-{% endblock %} 
+
+{% block title %}Accueil{% endblock %}
+
 {% block content %}
- 
-<!-- Inclure Boxicons -->
 
-    <!-- Conteneur du Slider -->
-    <div class="gradient-border w-full h-[300px] md:h-[475px] mt-8   rounded-[23px] overflow-hidden border-none relative">
-      <div id="slider" class="relative w-full h-full bg-cover bg-center">
-        <!-- Texte dynamique -->
-        <p id="slide-text" class="absolute w-full px-4 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-['Italiana'] font-normal text-white text-[32px] md:text-[64px] lg:text-[88px] text-center leading-tight"></p>
-        
-        <!-- Dots Navigation -->
-        <div id="dots" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4 z-10"></div>
+<!-- Boxicons CDN -->
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
-        <!-- Flèches de navigation -->
-        <button id="prev" class="absolute w-12 h-12 left-4 top-1/2 transform -translate-y-1/2 text-white bg-black/50 p-2 rounded-full text-xl z-10">
-          <i class='bx bx-chevron-left'></i>
-        </button>
-        <button id="next" class="absolute right-4 w-12 h-12 top-1/2 transform -translate-y-1/2 text-white bg-black/50 p-2 rounded-full text-xl z-10">
-          <i class='bx bx-chevron-right'></i>
-        </button>
+<!-- Slider Container -->
+<div class="w-full h-72 sm:h-96 md:h-[475px] mt-8 rounded-3xl overflow-hidden shadow-2xl relative group" style="border: 2px solid transparent;" data-gradient-border>
+  <div id="slider" class="w-full h-full bg-cover bg-center transition-all duration-1000 ease-in-out"></div>
 
-        <!-- Info/Play Buttons (statique) -->
-         
+  <!-- Text Overlay -->
+  <p id="slide-text"
+     class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-light text-center px-6 leading-tight tracking-wide drop-shadow-lg">
+  </p>
+
+  <!-- Navigation Dots -->
+  <div id="dots" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-3 z-20"></div>
+
+  <!-- Navigation Arrows -->
+  <button id="prev"
+          aria-label="Slide précédente"
+          class="absolute left-3 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 z-30 backdrop-blur-sm">
+    <i class='bx bx-chevron-left text-xl'></i>
+  </button>
+  <button id="next"
+          aria-label="Slide suivante"
+          class="absolute right-3 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 z-30 backdrop-blur-sm">
+    <i class='bx bx-chevron-right text-xl'></i>
+  </button>
+</div>
+
+<!-- Gradient Border via CSS -->
+<style>
+  [data-gradient-border] {
+    position: relative;
+  }
+  [data-gradient-border]::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 1rem;
+    background: linear-gradient(45deg, #a2189279, #e959c043, #a2189200);
+    z-index: -1;
+    pointer-events: none;
+  }
+</style>
+
+<!-- Main Content -->
+<div class="mt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+
+  <!-- Section: Films & Séries -->
+  <section class="mb-16">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8">
+      <div class="mb-4 sm:mb-0">
+        <h2 class="text-white text-3xl sm:text-4xl md:text-5xl font-normal leading-tight">Films et Séries</h2>
+        <p class="text-gray-400 text-base sm:text-lg mt-2">Sexy photos · Modèle sexy · Charme</p>
       </div>
+       
     </div>
 
-    <!-- Content Sections -->
-    <div class="mt-16">
-      <!-- Films et Series Section -->
-        <div class="mb-12">
-          <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8">
-            <div>
-              <h2 class="font-['Kantumruy'] font-normal text-white text-[32px] md:text-[44px] leading-tight">Film et Series</h2>
-              <p class="font-['Kantumruy'] font-normal text-white/60 text-[18px] md:text-[26px] mt-2">
-                Sexy photos · Modele sexy · Charme 
-              </p>
-            </div>
-            <button class="text-white flex items-center bg-[#a21892]  rounded-full px-4 py-2 text-sm">
-              {% comment %} voir plus {% endcomment %}
-              <h1 class="font-normal text-white text-xl  leading-tight"> Voir plus</h1>
-              <i class='bx bx-chevron-down text-2xl'></i>
-            </button>
-            
-          </div>
-          
-          <!-- First Row -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <!-- Item 1 -->
-            {% for video in videos %}
-                {% include "partials/_videos.html" %}
-            {% endfor %}
-             
-          </div>
-          
-      
-        </div>
-      <!-- Short Video Section -->
-        <div class="mb-12">
-          <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8">
-            <div>
-              <h2 class="font-['Kantumruy'] font-normal text-white text-[32px] md:text-[44px] leading-tight">Short Video</h2>
-              <p class="font-['Kantumruy'] font-normal text-white/60 text-[18px] md:text-[26px] mt-2">
-                Sexy photos · Modele sexy · Charme 
-              </p>
-            </div>
-            <button class="text-white flex items-center bg-[#a21892] rounded-full px-4 py-2 text-sm">
-              <h1 class="font-normal text-white text-xl leading-tight">Voir plus</h1>
-              <i class='bx bx-chevron-down text-2xl'></i>
-            </button>
-          </div>
-
-          <!-- Grid de vidéos courtes -->
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" id="short_videos">
-            {% for video in short_videos %}
-                {% include "partials/_short_video.html" %}
-            {% empty %}
-              <p class="text-red-400">Aucune vidéo courte disponible.</p>
-            {% endfor %}
-          </div>
-        </div>
-      <!-- Section Photos -->
-        <div class="mb-12">
-          <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8">
-            <div>
-              <h2 class="font-['Kantumruy'] font-normal text-white text-[32px] md:text-[44px] leading-tight">Photos</h2>
-              <p class="font-['Kantumruy'] font-normal text-white/60 text-[18px] md:text-[26px] mt-2">
-                Sexy photos · Modele sexy · Charme 
-              </p>
-            </div>
-            <button class="text-white flex items-center bg-[#a21892] rounded-full px-4 py-2 text-sm">
-              <h1 class="font-normal text-white text-xl leading-tight">Voir plus</h1>
-              <i class='bx bx-chevron-down text-2xl'></i>
-            </button>
-          </div>
-
-          <!-- Masonry Grid -->
-          <div class="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4">
-                {% include "partials/_photos.html" %}
-          </div>
-        </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for video in videos %}
+        {% include "partials/_videos.html" %}
+      {% empty %}
+        <p class="text-gray-500 col-span-full text-center py-4">Aucune vidéo disponible.</p>
+      {% endfor %}
     </div>
- 
+  </section>
 
+  <!-- Section: Short Videos -->
+  <section class="mb-16">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8">
+      <div class="mb-4 sm:mb-0">
+        <h2 class="text-white text-3xl sm:text-4xl md:text-5xl font-normal leading-tight">Short Videos</h2>
+        <p class="text-gray-400 text-base sm:text-lg mt-2">Sexy photos · Modèle sexy · Charme</p>
+      </div>
+      <a href="{% url 'shorts' %}"
+         class="inline-flex items-center gap-2 bg-[#a21892] hover:bg-[#8a147d] text-white px-6 py-2.5 rounded-full text-sm font-medium transition-colors duration-300">
+        <span>Voir plus</span>
+        <i class='bx bx-chevron-right text-lg'></i>
+      </a>
+    </div>
 
+    <div id="short_videos" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {% for video in short_videos %}
+        {% include "partials/_short_video.html" %}
+      {% empty %}
+        <p class="text-red-400 col-span-full text-center py-4">Aucun short vidéo disponible.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Section: Photos -->
+  <section class="mb-16">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8">
+      <div class="mb-4 sm:mb-0">
+        <h2 class="text-white text-3xl sm:text-4xl md:text-5xl font-normal leading-tight">Photos</h2>
+        <p class="text-gray-400 text-base sm:text-lg mt-2">Sexy photos · Modèle sexy · Charme</p>
+      </div>
+      <a href="{% url 'photos' %}"
+         class="inline-flex items-center gap-2 bg-[#a21892] hover:bg-[#8a147d] text-white px-6 py-2.5 rounded-full text-sm font-medium transition-colors duration-300">
+        <span>Voir plus</span>
+        <i class='bx bx-chevron-right text-lg'></i>
+      </a>
+    </div>
+
+    <div class="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4">
+      {% for photo in photos %}
+        <div class="break-inside-avoid">
+          <img  src="{{ photo.image.url }}"
+               alt="{{ photo.title|default:'Photo' }}"
+               class="w-full h-auto rounded-lg shadow-md hover:scale-[1.02] transition-transform duration-300">
+        </div>
+      {% empty %}
+        <p class="text-red-400 col-span-full text-center py-4">Aucune photo disponible.</p>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+<!-- Slider Script -->
 
 
 
@@ -211,4 +224,5 @@
       createDots();
       updateSlider();
     </script> 
+
 {% endblock %}

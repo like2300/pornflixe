@@ -1,17 +1,64 @@
 {% extends 'base.html' %}
-{% block title %}Payer {{ object.name }}{% endblock %}
+
+{% block title %}S'abonner à {{ object.name }}{% endblock %}
+
 {% block content %}
-<div class="container my-5 text-center">
-  <h1>{{ object.name }}</h1>
-  <p class="lead">{{ object.description|default:"" }}</p>
-  <h3 class="mb-4">{{ object.price }} €</h3>
+<div class="min-h-screen  flex items-center justify-center px-4 sm:px-6 lg:px-8">
+  <div class="max-w-md mx-auto">
+    
+    <!-- Carte d'abonnement -->
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition-transform duration-300 hover:scale-[1.01]">
+      
+      <!-- En-tête -->
+      <div class="bg-gradient-to-r from-pink-500 to-red-500 px-8 py-10 text-center">
+        <h1 class="text-3xl font-extrabold text-white mb-2">{{ object.name }}</h1>
+        {% if object.description %}
+          <p class="text-pink-100 text-sm">{{ object.description }}</p>
+        {% endif %}
+        <div class="mt-4">
+          <span class="text-4xl font-bold text-white">{{ object.price }}</span>
+          <span class="text-xl text-pink-200">€</span>
+        </div>
+      </div>
 
-  <div class="d-flex justify-content-center">
-    {{ form.render }}  <!-- le bouton PayPal généré par django-paypal -->
+      <!-- Corps -->
+      <div class="p-8">
+        <div class="flex justify-center mb-6">
+          <!-- Formulaire PayPal -->
+          <div class="paypal-button">
+            {{ form.render }}
+          </div>
+        </div>
+
+        <!-- Icônes de sécurité -->
+        <div class="flex items-center justify-center text-xs text-gray-500 gap-4 mt-6">
+          <div class="flex items-center gap-1">
+            <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Paiement sécurisé
+          </div>
+          <div class="flex items-center gap-1">
+            <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 014 0v5a2 2 0 01-2 2H3a2 2 0 01-2-2v-5a2 2 0 012-2h2a2 2 0 014 0zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+            </svg>
+            SSL chiffré
+          </div>
+        </div>
+
+        <!-- Lien de retour -->
+        <div class="mt-8 text-center">
+          <a href="{% url 'subscribe' %}" class="text-sm text-gray-500 hover:text-gray-700 transition-colors duration-200">
+            ← Retour aux abonnements
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message d'information -->
+    <p class="text-center text-gray-500 text-xs mt-6">
+      Vous recevrez un email de confirmation après paiement.
+    </p>
   </div>
-
-  <p class="mt-4">
-    <a href="{% url 'subscribe' %}" class="text-muted small">← Retour aux abonnements</a>
-  </p>
 </div>
 {% endblock %}

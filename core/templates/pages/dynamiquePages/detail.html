@@ -5,212 +5,306 @@
 
 {% block extra_css %}
 <style>
-    /* Animations swipe */
+    /* Animations de swipe */
     @keyframes swipeRight {
         0% { transform: translateX(0) rotate(0deg); opacity: 1; }
         100% { transform: translateX(200%) rotate(20deg); opacity: 0; }
     }
-    
     @keyframes swipeLeft {
         0% { transform: translateX(0) rotate(0deg); opacity: 1; }
         100% { transform: translateX(-200%) rotate(-20deg); opacity: 0; }
     }
-    
-    .swipe-right {
-        animation: swipeRight 0.5s forwards;
-    }
-    
-    .swipe-left {
-        animation: swipeLeft 0.5s forwards;
-    }
-    
-    /* Boutons actions */
+
+    .swipe-right { animation: swipeRight 0.5s forwards; }
+    .swipe-left { animation: swipeLeft 0.5s forwards; }
+
+    /* Boutons d'actions */
     .action-btn {
-        width: 50px;
-        height: 50px;
+        width: 56px;
+        height: 56px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255,255,255,0.1);
     }
-    
+
     .action-btn:hover {
-        transform: scale(1.1);
+        transform: scale(1.12);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
     }
-    
+
     .like-btn {
         background: linear-gradient(135deg, #a21892 0%, #e94057 100%);
     }
-    
     .pass-btn {
-        background: #2d3748;
+        background: rgba(45, 55, 72, 0.9);
     }
-    
     .share-btn {
-        background: #3182ce;
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
     }
-    
-    .message-btn {
-        background: #38a169;
+    .comment-btn {
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
     }
-    
+
     /* Description avec "Voir plus" */
     .description-container {
         position: relative;
+        background: rgba(30, 30, 46, 0.6);
+        border-radius: 1rem;
+        padding: 1rem;
+        border: 1px solid #333;
     }
-    
+
     .description-text {
-        max-height: 120px;
+        max-height: 4.8em;
+        line-height: 1.6;
         overflow: hidden;
-        transition: max-height 0.3s ease;
+        transition: max-height 0.4s ease;
     }
-    
+
     .description-text.expanded {
         max-height: none;
     }
-    
+
     .show-more-btn {
-        position: absolute;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(90deg, transparent, #1a1a2e 50%);
-        padding-left: 2rem;
-        color: #a21892;
+        font-size: 0.875rem;
         font-weight: 600;
+        color: #a21892;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: color 0.3s ease;
+        margin-top: 0.5rem;
+        display: inline-block;
     }
-    
+
     .show-more-btn:hover {
         color: #e94057;
+        text-decoration: underline;
     }
-    
+
     /* Overlay mobile */
     .mobile-overlay {
         position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
-        background: rgba(0,0,0,0.7);
-        backdrop-filter: blur(10px);
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(12px);
         z-index: 40;
-        padding: 1rem;
+        padding: 1.5rem 1rem;
+        border-top: 1px solid rgba(255,255,255,0.1);
     }
-    
-    /* Media queries */
+
+    /* Commentaires */
+    .comments-section {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #333;
+    }
+
+    .comment {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        background: rgba(255,255,255,0.05);
+        border-radius: 0.75rem;
+    }
+
+    .comment-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #a21892;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: white;
+        font-size: 0.875rem;
+    }
+
+    .comment-content {
+        flex: 1;
+    }
+
+    .comment-author {
+        font-weight: 600;
+        color: white;
+    }
+
+    .comment-text {
+        color: #ccc;
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+    }
+
+    .add-comment {
+        margin-top: 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .add-comment input {
+        flex: 1;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid #444;
+        color: white;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .add-comment button {
+        background: #a21892;
+        color: white;
+        border: none;
+        padding: 0 1rem;
+        border-radius: 0.75rem;
+        cursor: pointer;
+    }
+
+    /* Responsive */
     @media (max-width: 768px) {
-        .desktop-actions {
-            display: none;
-        }
-        
-        .mobile-overlay {
-            display: block;
-        }
+        .desktop-actions { display: none; }
+        .mobile-overlay { display: block; }
+        .glass-nav { padding-bottom: 80px; }
     }
-    
+
     @media (min-width: 769px) {
-        .mobile-overlay {
-            display: none;
-        }
+        .mobile-overlay { display: none; }
+        .glass-nav { min-height: 100vh; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="relative min-h-screen">
+<div class="relative min-h-screen bg-gray-900">
     <!-- Contenu principal -->
-    <div class="glass-nav min-h-screen py-12 px-4 md:px-20 lg:px-32">
-        <div class="max-w-6xl mx-auto grid items-center grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Partie gauche : Media avec interactions Tinder -->
-            <div class="relative group overflow-hidden rounded-2xl shadow-xl" id="media-container">
+    <div class="glass-nav min-h-screen py-12 px-4 md:px-8 lg:px-16">
+        <div class="max-w-6xl mx-auto grid items-start grid-cols-1 lg:grid-cols-2 gap-10">
+            <!-- Partie gauche : Média swipeable -->
+            <div class="relative group overflow-hidden rounded-3xl shadow-2xl" id="media-container">
                 {% if content.video %}
-                <video 
-                    id="media-element"
-                    class="w-full h-[400px] rounded-2xl object-cover cursor-grab active:cursor-grabbing"
-                    poster="{{ content.cover_film.url }}"
-                >
-                    <source src="{{ content.video.url }}" type="video/mp4">
-                </video>
+                    <video 
+                        id="media-element"
+                        class="w-full h-[400px] md:h-[500px] rounded-3xl object-cover cursor-grab active:cursor-grabbing"
+                        poster="{{ content.cover_film.url }}"
+                        controls
+                    >
+                        <source src="{{ content.video.url }}" type="video/mp4">
+                        Votre navigateur ne supporte pas la vidéo.
+                    </video>
                 {% elif content.image %}
-                <img 
-                    id="media-element"
-                    src="{{ content.image.url }}" 
-                    alt="{{ content.title|default:'Image' }}" 
-                    class="w-full h-auto rounded-2xl object-cover cursor-grab active:cursor-grabbing"
-                />
+                    <img 
+                        id="media-element"
+                        src="{{ content.image.url }}" 
+                        alt="{{ content.title|default:'Image' }}" 
+                        class="w-full h-auto rounded-3xl object-cover cursor-grab active:cursor-grabbing"
+                    />
                 {% else %}
-                <div class="w-full h-[400px] bg-gray-800 text-white flex items-center justify-center rounded-2xl">
-                    Aucun média disponible
-                </div>
+                    <div class="w-full h-[400px] bg-gray-800 text-white flex items-center justify-center rounded-3xl">
+                        Aucun média disponible
+                    </div>
                 {% endif %}
-                
-                <!-- Overlay d'actions desktop -->
+
+                <!-- Overlay desktop -->
                 <div class="absolute inset-0 flex items-end justify-center pb-8 desktop-actions">
                     <div class="flex gap-6">
+                        <button class="action-btn pass-btn" onclick="swipeLeft()">
+                            <i class='bx bx-x text-2xl text-white'></i>
+                        </button>
                         <button class="action-btn like-btn" onclick="swipeRight()">
                             <i class='bx bx-heart text-2xl text-white'></i>
                         </button>
-                        <button class="action-btn share-btn">
+                        <button class="action-btn share-btn" onclick="shareContent()">
                             <i class='bx bx-share-alt text-2xl text-white'></i>
                         </button>
-                        <button class="action-btn message-btn">
+                        <button class="action-btn comment-btn" onclick="focusCommentInput()">
                             <i class='bx bx-message text-2xl text-white'></i>
                         </button>
                     </div>
                 </div>
             </div>
-            
-            <!-- Partie droite : Infos -->
-            <div class="flex flex-col space-y-6">
-                <div class="flex justify-between items-center w-full">
-                    <h1 class="text-3xl md:text-4xl font-bold text-white">{{ content.title|default:"Titre non disponible" }}</h1>
-                    <span class="bg-[#a21892] text-white px-3 py-1 rounded-full text-sm">
+
+            <!-- Partie droite : Informations -->
+            <div class="flex flex-col space-y-6 text-white">
+                <div class="flex justify-between items-start">
+                    <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">
+                        {{ content.title|default:"Titre non disponible" }}
+                    </h1>
+                    <span class="bg-[#a21892] text-white px-3 py-1 rounded-full text-sm font-medium">
                         {{ content.views|default:0 }} vues
                     </span>
                 </div>
-                
-                <p class="text-gray-400 text-sm">Publié {{ content.get_time_ago }}</p>
-                
-                <!-- Description avec bouton "Voir plus" -->
+
+                <p class="text-gray-400 text-sm">
+                    Publié {{ content.get_time_ago|default:"récemment" }}
+                </p>
+
+                <!-- Description -->
                 <div class="description-container mt-2">
-                    <div class="description-text text-gray-300 leading-relaxed relative">
+                    <div class="description-text text-gray-300 leading-relaxed">
                         <p id="description-content">{{ content.description|default:"Aucune description disponible." }}</p>
                         <span class="show-more-btn" id="show-more-btn">Voir plus</span>
                     </div>
                 </div>
-                
+
                 <!-- Genres -->
                 <div class="mt-4">
                     <div class="flex flex-wrap gap-2">
                         {% if content.genre.all %}
                             {% for genre in content.genre.all %}
-                                <a href="{{request.host}}/search/?q={{genre.name}}" class="bg-[#a21892]/30 text-white px-3 py-1 rounded-full text-sm border border-[#a21892]">
+                                <a href="{% url 'genres' %}?q={{ genre.name }}"
+                                   class="bg-[#a21892]/30 text-white px-3 py-1 rounded-full text-sm border border-[#a21892]/50 hover:bg-[#a21892]/50 transition">
                                     {{ genre.name }}
                                 </a>
                             {% endfor %}
                         {% else %}
                             <span class="bg-gray-700 text-white px-3 py-1 rounded-full text-sm">
-                                non-categorise
+                                Non catégorisé
                             </span>
                         {% endif %}
                     </div>
                 </div>
-                
-                <!-- Boutons desktop -->
+
+                <!-- Boutons d'action desktop -->
                 <div class="mt-8 hidden md:flex gap-4">
-                  <a href="{% url 'content_detail' content_type='video' pk=content.id %}" class="flex-1 text-center bg-[#a21892] hover:bg-[#8a147a] text-white py-3 px-6 rounded-full transition"> 
-                        Regarder maintenant
+                    <a href="{% url 'video_player' pk=content.id %}"
+                       class="flex-1 text-center bg-[#a21892] hover:bg-[#8a147a] text-white py-3 px-6 rounded-full transition font-medium">
+                        🔹 Regarder maintenant
                     </a>
-                    <a href="#" class="flex-1 text-center border border-gray-600 hover:border-gray-400 text-white py-3 px-6 rounded-full transition">
-                        Ajouter aux favoris
-                    </a>
+                    <button onclick="toggleFavorite()"
+                            class="flex-1 text-center border border-gray-600 hover:border-[#a21892] text-white py-3 px-6 rounded-full transition">
+                        ❤️ Ajouter aux favoris
+                    </button>
+                </div>
+
+                <!-- Section commentaires -->
+                <div class="comments-section">
+                    <h3 class="text-lg font-semibold mb-4">Commentaires</h3>
+                    <div id="comments-list">
+                        <!-- Exemple de commentaire (remplacer par vrai data) -->
+                        <div class="comment">
+                            <div class="comment-avatar">A</div>
+                            <div class="comment-content">
+                                <div class="comment-author">Alice</div>
+                                <div class="comment-text">Très belle photo, magnifique ambiance !</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="add-comment">
+                        <input type="text" placeholder="Ajouter un commentaire..." id="comment-input">
+                        <button onclick="addComment()">Envoyer</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Overlay mobile -->
     <div class="mobile-overlay">
         <div class="flex justify-around">
@@ -220,18 +314,21 @@
             <button class="action-btn like-btn" onclick="swipeRight()">
                 <i class='bx bx-heart text-2xl text-white'></i>
             </button>
-            <button class="action-btn share-btn">
+            <button class="action-btn share-btn" onclick="shareContent()">
                 <i class='bx bx-share-alt text-2xl text-white'></i>
+            </button>
+            <button class="action-btn comment-btn" onclick="focusCommentInput()">
+                <i class='bx bx-message text-2xl text-white'></i>
             </button>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
 <script>
-    // Variables globales
+    // Variables
     let isDragging = false;
     let startX, startY;
     const mediaElement = document.getElementById('media-element');
@@ -239,128 +336,139 @@
     const descriptionContent = document.getElementById('description-content');
     const showMoreBtn = document.getElementById('show-more-btn');
     const descriptionText = document.querySelector('.description-text');
-    
-    // Fonction pour gérer le bouton "Voir plus"
+
+    // "Voir plus / Voir moins"
     function toggleDescription() {
         descriptionText.classList.toggle('expanded');
         showMoreBtn.textContent = descriptionText.classList.contains('expanded') ? 'Voir moins' : 'Voir plus';
     }
-    
-    // Initialisation du bouton "Voir plus"
+
     function initShowMoreButton() {
-        if (descriptionContent.scrollHeight > 120) {
-            showMoreBtn.style.display = 'block';
+        if (descriptionContent.scrollHeight > 76) {
+            showMoreBtn.style.display = 'inline';
         } else {
             showMoreBtn.style.display = 'none';
         }
     }
-    
-    // Fonctions de swipe
+
+    // Swipe Like / Pass
     function swipeRight() {
         mediaElement.classList.add('swipe-right');
         setTimeout(() => {
-            // Action après swipe (like)
-            alert('Contenu liké!');
+            alert('❤️ Contenu aimé !');
             mediaElement.classList.remove('swipe-right');
         }, 500);
     }
-    
+
     function swipeLeft() {
         mediaElement.classList.add('swipe-left');
         setTimeout(() => {
-            // Action après swipe (pass)
-            alert('Contenu passé!');
+            alert('❌ Contenu passé');
             mediaElement.classList.remove('swipe-left');
         }, 500);
     }
-    
-    // Gestion des événements tactiles
+
+    // Partage natif (mobile) ou copie de lien
+    function shareContent() {
+        const title = "{{ content.title }}";
+        const url = window.location.href;
+
+        if (navigator.share) {
+            navigator.share({ title, url });
+        } else {
+            navigator.clipboard.writeText(url).then(() => {
+                alert("Lien copié dans le presse-papiers !");
+            });
+        }
+    }
+
+    // Focus sur input commentaire
+    function focusCommentInput() {
+        document.getElementById('comment-input').focus();
+    }
+
+    // Ajouter un commentaire (exemple basique)
+    function addComment() {
+        const input = document.getElementById('comment-input');
+        const text = input.value.trim();
+        if (!text) return;
+
+        const commentsList = document.getElementById('comments-list');
+        const username = "{{ request.user.username|default:'Anonyme' }}";
+
+        const commentEl = document.createElement('div');
+        commentEl.className = 'comment';
+        commentEl.innerHTML = `
+            <div class="comment-avatar">${username[0].toUpperCase()}</div>
+            <div class="comment-content">
+                <div class="comment-author">${username}</div>
+                <div class="comment-text">${text}</div>
+            </div>
+        `;
+        commentsList.appendChild(commentEl);
+        input.value = '';
+    }
+
+    // Toggle favori (à connecter à ton API)
+    function toggleFavorite() {
+        alert("Ajouté aux favoris !");
+    }
+
+    // Gestion tactile
     if (mediaElement) {
-        mediaElement.addEventListener('touchstart', (e) => {
+        mediaElement.addEventListener('touchstart', e => {
             isDragging = true;
             startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
         });
-        
-        mediaElement.addEventListener('touchmove', (e) => {
+
+        mediaElement.addEventListener('touchmove', e => {
             if (!isDragging) return;
-            
-            const x = e.touches[0].clientX;
-            const y = e.touches[0].clientY;
-            
-            const deltaX = x - startX;
-            const deltaY = y - startY;
-            
-            // Déplacement horizontal seulement
-            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            const deltaX = e.touches[0].clientX - startX;
+            if (Math.abs(deltaX) > 20) {
                 e.preventDefault();
                 mediaElement.style.transform = `translateX(${deltaX}px) rotate(${deltaX * 0.1}deg)`;
             }
         });
-        
-        mediaElement.addEventListener('touchend', (e) => {
+
+        mediaElement.addEventListener('touchend', e => {
             if (!isDragging) return;
             isDragging = false;
-            
-            const x = e.changedTouches[0].clientX;
-            const deltaX = x - startX;
-            
-            // Seuil pour déclencher le swipe
+            const deltaX = e.changedTouches[0].clientX - startX;
             if (Math.abs(deltaX) > 100) {
-                if (deltaX > 0) {
-                    swipeRight();
-                } else {
-                    swipeLeft();
-                }
+                deltaX > 0 ? swipeRight() : swipeLeft();
             } else {
                 mediaElement.style.transform = '';
             }
         });
     }
-    
-    // Gestion des événements souris (pour desktop)
+
+    // Gestion souris (desktop)
     if (mediaElement) {
-        mediaElement.addEventListener('mousedown', (e) => {
+        mediaElement.addEventListener('mousedown', e => {
             isDragging = true;
             startX = e.clientX;
-            startY = e.clientY;
         });
-        
-        window.addEventListener('mousemove', (e) => {
+
+        window.addEventListener('mousemove', e => {
             if (!isDragging) return;
-            
-            const x = e.clientX;
-            const y = e.clientY;
-            
-            const deltaX = x - startX;
-            const deltaY = y - startY;
-            
-            if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                mediaElement.style.transform = `translateX(${deltaX}px) rotate(${deltaX * 0.1}deg)`;
-            }
+            const deltaX = e.clientX - startX;
+            mediaElement.style.transform = `translateX(${deltaX}px) rotate(${deltaX * 0.1}deg)`;
         });
-        
-        window.addEventListener('mouseup', (e) => {
+
+        window.addEventListener('mouseup', e => {
             if (!isDragging) return;
             isDragging = false;
-            
-            const x = e.clientX;
-            const deltaX = x - startX;
-            
+            const deltaX = e.clientX - startX;
             if (Math.abs(deltaX) > 100) {
-                if (deltaX > 0) {
-                    swipeRight();
-                } else {
-                    swipeLeft();
-                }
+                deltaX > 0 ? swipeRight() : swipeLeft();
             } else {
                 mediaElement.style.transform = '';
             }
         });
     }
-    
-    // Initialisation
-    document.addEventListener('DOMContentLoaded', function() {
+
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
         initShowMoreButton();
         showMoreBtn.addEventListener('click', toggleDescription);
     });

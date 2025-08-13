@@ -1,12 +1,169 @@
+<!-- photos.html -->
 {% extends "baseApp.html" %}
+{% load static %}
+
 {% block title %}Photos{% endblock %}
+
 {% block content %}
-<div class="mt-16 px-4">
-  <h2 class="text-white text-4xl mb-8">Photos</h2>
-  <div class="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4">
-    
-    {% include "partials/_photos.html" %}
+<div class="mt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+  <h2 class="text-white text-3xl sm:text-4xl md:text-5xl font-normal mb-8">Photos</h2>
+
+  <!-- Grille Masonry -->
+  <div class="columns-2 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-6">
+    {% for photo in photos %}
+      <div class="break-inside-avoid group cursor-pointer" onclick="openSwipeModal({{ photo.id }}, '{{ photo.image.url }}', '{{ photo.title|escape }}', '{{ photo.description|escape|default:'' }}', '{{ photo.user.username }}', '{{ photo.created_at|date:"d/m/Y" }}')">
+        <div class="relative overflow-hidden rounded-xl shadow-lg transition-all duration-500 hover:scale-105 hover:shadow-2xl">
+          <img
+            src="{{ photo.image.url }}"
+            alt="{{ photo.title|default:'Photo' }}"
+            class="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-110"
+            loading="lazy"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
+            <p class="text-white px-4 pb-4 text-sm sm:text-base font-medium truncate">{{ photo.title|truncatechars:30 }}</p>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <p class="text-gray-400 col-span-full text-center py-8">Aucune photo disponible.</p>
+    {% endfor %}
   </div>
- 
 </div>
+
+<!-- Modale de Swipe (Tinder Style) -->
+<div id="swipe-modal" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center p-4">
+  <div class="relative w-full max-w-md aspect-[3/4] bg-gray-900 rounded-2xl overflow-hidden shadow-2xl">
+    <!-- Photo -->
+    <img id="swipe-img" class="w-full h-full object-cover" src="" alt="Photo">
+
+    <!-- Informations -->
+    <div class="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black via-transparent to-transparent text-white">
+      <h3 id="swipe-title" class="text-xl font-bold"></h3>
+      <p id="swipe-desc" class="text-sm text-gray-200 mt-1 line-clamp-2"></p>
+      <div class="flex justify-between items-center mt-3 text-xs text-gray-300">
+        <span>Par <strong id="swipe-author"></strong></span>
+        <span id="swipe-date"></span>
+      </div>
+    </div>
+
+    <!-- Boutons de navigation -->
+    <button onclick="prevPhoto()" class="absolute left-4 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white">
+      <i class='bx bx-chevron-left text-xl'></i>
+    </button>
+    <button onclick="nextPhoto()" class="absolute right-4 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white">
+      <i class='bx bx-chevron-right text-xl'></i>
+    </button>
+
+    <!-- Bouton Fermer -->
+    <button onclick="closeSwipeModal()" class="absolute top-4 right-4 w-10 h-10 bg-black/60 rounded-full flex items-center justify-center text-white">
+      <i class='bx bx-x text-xl'></i>
+    </button>
+
+    <!-- Bouton Télécharger (visible si abonné) -->
+    {% if has_active_subscription %}
+      <a id="download-btn" href="#" download class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-[#a21892] hover:bg-[#8a147d] text-white px-6 py-2.5 rounded-full text-sm font-medium transition-colors z-10">
+        Télécharger
+      </a>
+    {% else %}
+      <button onclick="alert('Abonnez-vous pour télécharger !')" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-600 text-white px-6 py-2.5 rounded-full text-sm font-medium cursor-not-allowed">
+        Télécharger
+      </button>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Boxicons -->
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+<!-- Hammer.js pour le swipe -->
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+
+<script>
+  // Données des photos (injectées dynamiquement)
+  const photoList = [
+    {% for photo in photos %}
+      {
+        id: {{ photo.id }},
+        url: "{{ photo.image.url }}",
+        title: "{{ photo.title|escape }}",
+        description: "{{ photo.description|escape|default:'' }}",
+        author: "{{ photo.user.username }}",
+        date: "{{ photo.created_at|date:'d/m/Y' }}",
+        downloadUrl: "{% if has_active_subscription %}{{ photo.image.url }}{% else %}#{% endif %}"
+      },
+    {% endfor %}
+  ];
+
+  let currentIndex = 0;
+
+  // Ouvrir la modale avec une photo
+  function openSwipeModal(id, url, title, desc, author, date) {
+    const photo = photoList.find(p => p.id === id);
+    if (!photo) return;
+
+    currentIndex = photoList.indexOf(photo);
+    updateSwipeModal();
+    document.getElementById('swipe-modal').classList.remove('hidden');
+    setupSwipeGesture();
+  }
+
+  // Mettre à jour l'affichage
+  function updateSwipeModal() {
+    const photo = photoList[currentIndex];
+    if (!photo) return;
+
+    const img = document.getElementById('swipe-img');
+    const title = document.getElementById('swipe-title');
+    const desc = document.getElementById('swipe-desc');
+    const author = document.getElementById('swipe-author');
+    const date = document.getElementById('swipe-date');
+    const downloadBtn = document.getElementById('download-btn');
+
+    img.src = photo.url;
+    title.textContent = photo.title || 'Sans titre';
+    desc.textContent = photo.description || '';
+    author.textContent = photo.author;
+    date.textContent = photo.date;
+
+    if (downloadBtn && photo.downloadUrl) {
+      downloadBtn.href = photo.downloadUrl;
+    }
+  }
+
+  // Navigation
+  function nextPhoto() {
+    if (currentIndex < photoList.length - 1) {
+      currentIndex++;
+      updateSwipeModal();
+    }
+  }
+
+  function prevPhoto() {
+    if (currentIndex > 0) {
+      currentIndex--;
+      updateSwipeModal();
+    }
+  }
+
+  function closeSwipeModal() {
+    document.getElementById('swipe-modal').classList.add('hidden');
+  }
+
+  // Gestion du swipe
+  function setupSwipeGesture() {
+    const modal = document.querySelector('#swipe-modal .relative');
+    const hammer = new Hammer(modal);
+
+    hammer.on('swipeleft', () => nextPhoto());
+    hammer.on('swiperight', () => prevPhoto());
+  }
+
+  // Fermer avec Échap
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSwipeModal();
+  });
+</script>
 {% endblock %}

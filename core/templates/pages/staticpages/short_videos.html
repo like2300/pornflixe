@@ -1,18 +1,62 @@
 {% extends "baseApp.html" %}
+
 {% block title %}Short Videos{% endblock %}
+
 {% block content %}
 <style>
-  video::-webkit-media-controls {
-    display: none !important;
+  /* Reset & Fullscreen */
+  body, html {
+    margin: 0;
+    padding: 0;
+    background: #000;
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    height: 100vh;
+    overflow: hidden;
   }
 
+  /* Video Wrapper - Fullscreen vertical scroll */
+  .video-wrapper {
+    scroll-snap-type: y mandatory;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+    height: 100vh;
+    width: 100%;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+  }
+
+  .video-wrapper::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Video Container */
+  .video-container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Video Styling */
+  .video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #111;
+  }
+
+  /* Progress Bar (TikTok style) */
   .progress-bar {
     position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
     width: 0%;
     height: 3px;
     background: #a21892;
+    z-index: 10;
     animation: loading 5s linear forwards;
   }
 
@@ -21,100 +65,172 @@
     to { width: 100%; }
   }
 
-  .video-container {
-    position: relative;
-    width: 100%;
-    max-width: 400px;
-    height: 100vh;
-    overflow: hidden;
-    scroll-snap-align: start;
-  }
-
-  .video-wrapper {
-    scroll-snap-type: y mandatory;
-    overflow-y: scroll;
-    -webkit-overflow-scrolling: touch;
-    height: 100vh;
-    scrollbar-width: none; /* Firefox */
-  }
-
-  .video-wrapper::-webkit-scrollbar {
-    display: none; /* Safari and Chrome */
-  }
-
+  /* Overlay Text (Titre de la vidéo) */
   .overlay-text {
-    transition: opacity 0.3s ease-in-out;
+    position: absolute;
+    bottom: 80px;
+    left: 15px;
+    right: 15px;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    opacity: 0.95;
+    z-index: 2;
+    max-width: 90%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .video-wrapper .video-container:hover .overlay-text {
-    opacity: 1;
+  /* Action Buttons (Coeur, Commentaire, Partage) */
+  .action-buttons {
+    position: absolute;
+    right: 15px;
+    bottom: 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    z-index: 3;
+  }
+
+  .action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .action-btn svg {
+    width: 28px;
+    height: 28px;
+    fill: white;
+  }
+
+  /* Like Button - Rouge quand aimé */
+  .action-btn.liked svg {
+    fill: #ff0050;
+  }
+
+  /* Footer Text (Nom d'utilisateur et description) */
+  .video-footer {
+    position: absolute;
+    bottom: 70px;
+    left: 15px;
+    right: 15px;
+    z-index: 2;
+  }
+
+  .video-footer h3 {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 0;
+  }
+
+  .video-footer p {
+    font-size: 14px;
+    margin: 4px 0 0 0;
+    color: #e0e0e0;
+  }
+
+  /* Loading Spinner */
+  .loading {
+    text-align: center;
+    padding: 20px;
+    color: #a21892;
   }
 </style>
 
+<!-- TikTok-style Video Feed -->
 <div class="video-wrapper" id="videoWrapper">
-     <center>
-         {% include "partials/_video_items.html" %}
-     </center>
+  {% include "partials/_video_items.html" %}
 </div>
 
 <script>
   const wrapper = document.getElementById('videoWrapper');
   const containers = document.querySelectorAll('.video-container');
 
+  // Gérer la lecture automatique
   function playVideo(container) {
+    const video = container.querySelector('video');
+    const progressBar = container.querySelector('.progress-bar');
+
+    // Réinitialiser toutes les vidéos
     containers.forEach(cont => {
-      const video = cont.querySelector('video');
-      if (cont === container) {
-        cont.setAttribute('data-playing', 'true');
-        video.play();
-      } else {
-        cont.setAttribute('data-playing', 'false');
-        video.pause();
+      const v = cont.querySelector('video');
+      const pb = cont.querySelector('.progress-bar');
+      if (cont !== container) {
+        v.pause();
+        if (pb) pb.style.animation = 'none';
+        setTimeout(() => pb.style.animation = 'loading 5s linear forwards', 10);
       }
     });
+
+    // Lancer la vidéo cible
+    video.play().catch(e => console.log("Autoplay bloqué :", e));
+    if (progressBar) {
+      progressBar.style.animation = 'none';
+      setTimeout(() => progressBar.style.animation = 'loading 5s linear forwards', 10);
+    }
   }
 
+  // Observer quand une vidéo entre en vue
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-      const container = entry.target;
       if (entry.isIntersecting) {
-        playVideo(container);
+        playVideo(entry.target);
       }
     });
-  }, {
-    threshold: 0.6
-  });
+  }, { threshold: 0.6 });
 
   containers.forEach(container => {
     observer.observe(container);
   });
 
+  // Lancer la première vidéo
   window.addEventListener('load', () => {
     if (containers.length > 0) {
       playVideo(containers[0]);
     }
   });
 
-  // Charger plus de vidéos en scrollant
+  // Charger plus de vidéos en bas
   let page = 1;
   let loading = false;
 
   wrapper.addEventListener('scroll', () => {
-    if (wrapper.scrollHeight - wrapper.scrollTop <= wrapper.clientHeight + 100 && !loading) {
+    if (wrapper.scrollHeight - wrapper.scrollTop <= wrapper.clientHeight + 200 && !loading) {
       loading = true;
       page += 1;
+
       fetch(`/load-more-videos/?page=${page}`)
         .then(res => res.text())
         .then(html => {
-          wrapper.innerHTML += html;
-          loading = false;
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = html.trim();
 
-          const newContainers = document.querySelectorAll('.video-container');
-          newContainers.forEach(container => {
-            observer.observe(container);
+          // Ajouter les nouveaux conteneurs
+          Array.from(tempDiv.children).forEach(child => {
+            wrapper.appendChild(child);
+            observer.observe(child);
           });
+
+          loading = false;
+        })
+        .catch(err => {
+          console.error("Erreur chargement:", err);
+          loading = false;
         });
     }
+  });
+
+  // Gérer les likes
+  document.querySelectorAll('.action-btn.like').forEach(btn => {
+    btn.addEventListener('click', function () {
+      this.classList.toggle('liked');
+    });
   });
 </script>
 {% endblock %}

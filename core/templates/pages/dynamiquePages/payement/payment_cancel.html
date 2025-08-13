@@ -1,12 +1,47 @@
 {% extends 'baseApp.html' %}
 
 {% block content %}
-<div class="container text-center my-5">
-    <h1 class="display-4 text-warning">Paiement annulé</h1>
-    <p class="lead">Vous avez annulé votre abonnement.</p>
-    <p>Si c'était une erreur, vous pouvez réessayer.</p>
-    <a href="{% url 'subscribe' %}" class="btn btn-primary">
-        Voir les abonnements
-    </a>
+<div class="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-orange-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-lg mx-auto">
+    
+    <!-- Carte d'annulation -->
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 transform hover:shadow-2xl">
+      
+      <!-- En-tête avec icône -->
+      <div class="bg-gradient-to-r from-yellow-400 to-orange-500 py-8 text-center">
+        <svg class="w-16 h-16 text-white mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        <h1 class="text-3xl font-extrabold text-white">Paiement annulé</h1>
+      </div>
+
+      <!-- Corps du message -->
+      <div class="p-8 text-center">
+        <p class="text-lg text-gray-700 mb-3">Vous avez annulé votre abonnement.</p>
+        <p class="text-gray-600 mb-6">Si c’était une erreur, vous pouvez réessayer à tout moment.</p>
+
+        <!-- Bouton d'action -->
+        <a href="{% url 'subscribe' %}"
+           class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-lg shadow-md hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-200 transform hover:scale-105">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Voir les abonnements
+        </a>
+      </div>
+
+      <!-- Message d'encouragement -->
+      <div class="bg-gray-50 px-8 py-4 text-center border-t">
+        <p class="text-sm text-gray-500">
+          Revenez quand vous voulez — le contenu vous attend !
+        </p>
+      </div>
+    </div>
+
+    <!-- Message secondaire -->
+    <p class="text-center text-gray-500 text-sm mt-6">
+      Aucun frais n’a été engagé.
+    </p>
+  </div>
 </div>
 {% endblock %}

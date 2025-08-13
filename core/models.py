@@ -22,9 +22,23 @@ class SubscriptionPlan(models.Model):
     duration_days = models.PositiveIntegerField(default=30)
     description = models.TextField(blank=True, null=True)
     
-    def __str__(self):
-        return f"{self.name} - {self.price}€/mois"
+    # ✅ Champ ajouté
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Plan actif",
+        help_text="Indique si ce plan est disponible à la souscription."
+    )
 
+    class Meta:
+        verbose_name = "Plan d'abonnement"
+        verbose_name_plural = "Plans d'abonnement"
+
+    def __str__(self):
+        return f"{self.name} - {self.price}€ ({'actif' if self.is_active else 'inactif'})"
+    
+
+
+    
 class Comment(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

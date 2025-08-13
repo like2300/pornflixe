@@ -1,56 +1,72 @@
 {% extends 'baseApp.html' %}
 
 {% block content %}
-<div id="pricing" class="py-20 md:px-20 lg:px-20">
-  <div class="container mx-auto px-4">
-    <div class="mb-12 text-center">
-      <h3 class="text-[#a21892]" data-aos="fade-down">Plans d'abonnement</h3>
-      <h2 class="text-white text-[30px] font-bold" data-aos="fade-down">
+<section id="pricing" class="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-7xl mx-auto">
+    
+    <!-- En-tête -->
+    <div class="text-center mb-12" data-aos="fade-down">
+      <span class="inline-block px-4 py-1.5 text-sm font-medium text-[#a21892] bg-[#a21892]/10 rounded-full border border-[#a21892]/30">
+        Abonnement
+      </span>
+      <h2 class="mt-4 text-3xl md:text-4xl font-bold text-white">
         Choisissez votre forfait parfait
       </h2>
-      <p class="mx-auto mt-4 max-w-2xl text-gray-400" data-aos="fade-down">
+      <p class="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">
         Sélectionnez parmi nos forfaits soigneusement conçus pour répondre à vos besoins spécifiques et à votre budget.
       </p>
     </div>
 
+    <!-- Message d'abonnement actuel -->
     {% if current_plan %}
-    <div class="alert alert-info mb-8 text-center text-white bg-[#a21892] p-4 rounded-lg max-w-2xl mx-auto">
-      Vous avez actuellement l'abonnement : <strong>{{ current_plan.name }}</strong>
+    <div class="mb-10 p-4 text-center bg-gradient-to-r from-[#a21892]/20 to-[#a21841]/15 border border-[#a21892]/40 rounded-xl text-white max-w-xl mx-auto">
+      <p class="text-sm sm:text-base">
+        Vous avez actuellement l'abonnement : <strong class="font-semibold">{{ current_plan.name }}</strong>
+      </p>
     </div>
     {% endif %}
 
-    <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+    <!-- Grille des plans -->
+    <div class="grid gap-6 md:gap-8 lg:grid-cols-3">
       {% for plan in plans %}
-      <div class="relative bg-[#1A1A1A] border border-gray-800 p-6 rounded-xl {% if plan.is_popular %}bg-violet-900/20 backdrop-blur-lg border-2 border-[#a21892] hover:-translate-y-2 transition-all duration-300{% endif %}">
+      <div class="relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-2xl overflow-hidden transition-all duration-300 hover:border-[#a21892]/60 {% if plan.is_popular %}ring-2 ring-[#a21892]/50 scale-105 lg:scale-100{% endif %}">
         
+        <!-- Badge "Le Plus Populaire" -->
         {% if plan.is_popular %}
-        <div class="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-[#a21892] px-3 py-1 text-white text-sm font-semibold">
-          Le Plus Populaire
+        <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+          <span class="inline-block px-5 py-2 bg-gradient-to-r from-[#a21892] to-[#a21841] text-white text-sm font-bold rounded-full shadow-lg">
+            🌟 Le Plus Populaire
+          </span>
         </div>
         {% endif %}
-        
-        <div class="text-center">
-          <h3 class="text-2xl font-bold text-[#a21892]">
-            {{ plan.name }}
-          </h3>
-          <div class="mt-4">
-            <span class="text-4xl text-[#a21892] font-bold">
-              {{ plan.price }}€
-            </span>
-            <span class="text-gray-400">/mois</span>
-          </div>
-        </div>
 
-        <div class="mt-6">
-          <ul class="mb-8 space-y-4">
+        <!-- Contenu du plan -->
+        <div class="p-6 md:p-8">
+          <div class="text-center mb-6">
+            <h3 class="text-2xl font-bold text-white">{{ plan.name }}</h3>
+            <div class="mt-3">
+              <span class="text-4xl font-extrabold text-[#a21892]">{{ plan.price }}</span>
+              <span class="text-xl text-gray-400">€/mois</span>
+            </div>
+          </div>
+
+          <!-- Liste des fonctionnalités -->
+          <ul class="space-y-3 mb-8">
             {% for feature in plan.features.all %}
-            <li class="flex items-center">
-              <svg class="mr-2 h-5 w-5 text-[#a21892]" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20"><path d="M9 12l2 2 4-4"/></svg>
-              <span class="text-white">{{ feature.description }}</span>
+            <li class="flex items-center space-x-3">
+              <svg class="w-5 h-5 text-[#a21892]" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+              </svg>
+              <span class="text-gray-200 text-sm md:text-base">{{ feature.description }}</span>
             </li>
+            {% empty %}
+            <li class="text-gray-500 text-sm">Aucune fonctionnalité définie.</li>
             {% endfor %}
           </ul>
-          <a href="{% url 'subscribe' plan.id %}" class="block w-full py-3 px-6 text-center text-white font-semibold rounded-full bg-gradient-to-r from-[#a21892] to-[#a21841] shadow-lg hover:from-purple-600 hover:to-indigo-600 transition duration-300 ease-in-out transform hover:scale-105">
+
+          <!-- Bouton d'action -->
+          <a href="{% url 'subscribe' plan.id %}"
+             class="w-full block text-center py-3.5 px-6 text-white font-semibold rounded-xl bg-gradient-to-r from-[#a21892] to-[#a21841] hover:from-[#8a157a] hover:to-[#8a1537] focus:outline-none focus:ring-4 focus:ring-[#a21892]/50 shadow-lg transition-all duration-300 transform hover:scale-105">
             Choisir ce plan
           </a>
         </div>
@@ -58,5 +74,5 @@
       {% endfor %}
     </div>
   </div>
-</div>
+</section>
 {% endblock %}

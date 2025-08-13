@@ -19,8 +19,8 @@ from datetime import timedelta
 import logging
 from paypal.standard.forms import PayPalPaymentsForm
 from django.contrib.auth import get_user_model
-
 from .models import *
+from django.core.exceptions import PermissionDenied 
 
 logger = logging.getLogger(__name__)
 
@@ -498,36 +498,6 @@ from django.dispatch import receiver
 
 
 
-@receiver(valid_ipn_received)
-def handle_paypal_ipn(sender, **kwargs):
-    ipn = sender
-    
-    if ipn.payment_status == "Completed":
-        try:
-            user_id, plan_id = map(int, ipn.custom.split(','))
-            user = get_object_or_404(User, id=user_id)
-            plan = get_object_or_404(SubscriptionPlan, id=plan_id)
-            
-            # Désactiver les anciens abonnements
-            UserSubscription.objects.filter(user=user).update(is_active=False)
-            
-            # Créer le nouvel abonnement
-            UserSubscription.objects.create(
-                user=user,
-                plan=plan,
-                start_date=timezone.now(),
-                end_date=timezone.now() + timedelta(days=plan.duration_days),
-                is_active=True
-            )
-            
-            logger.info(f"Abonnement créé pour {user.username} - Plan: {plan.name}")
-            
-        except Exception as e:
-            logger.error(f"Erreur création abonnement: {str(e)}")
-
-
-
-
 def _activate_subscription(user_id, plan_id):
     """Active ou met à jour l'abonnement"""
     with transaction.atomic():
@@ -560,23 +530,6 @@ def _activate_subscription(user_id, plan_id):
 
 def contact_support(request):
     return render(request, 'support/contact.html')
-
-
-
-
-
-
-
-
-from django.shortcuts import redirect
-from django.contrib import messages
-from django.utils import timezone
-from django.views.generic import TemplateView
-from django.core.exceptions import PermissionDenied
-from django.db import transaction
-import logging
-
-logger = logging.getLogger(__name__)
 
 class SuccessView(LoginRequiredMixin, BaseContextMixin, TemplateView):
     template_name = 'pages/dynamiquePages/payement/payment_success.html'
@@ -672,10 +625,32 @@ class SuccessView(LoginRequiredMixin, BaseContextMixin, TemplateView):
         except Exception as e:
             logger.error(f"Erreur envoi email confirmation: {str(e)}")
 
-
-
-
-
+@receiver(valid_ipn_received)
+def handle_paypal_ipn(sender, **kwargs):
+    ipn = sender
+    
+    if ipn.payment_status == "Completed":
+        try:
+            user_id, plan_id = map(int, ipn.custom.split(','))
+            user = get_object_or_404(User, id=user_id)
+            plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+            
+            # Désactiver les anciens abonnements
+            UserSubscription.objects.filter(user=user).update(is_active=False)
+            
+            # Créer le nouvel abonnement
+            UserSubscription.objects.create(
+                user=user,
+                plan=plan,
+                start_date=timezone.now(),
+                end_date=timezone.now() + timedelta(days=plan.duration_days),
+                is_active=True
+            )
+            
+            logger.info(f"Abonnement créé pour {user.username} - Plan: {plan.name}")
+            
+        except Exception as e:
+            logger.error(f"Erreur création abonnement: {str(e)}")
 
 
 

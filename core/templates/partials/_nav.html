@@ -1,154 +1,231 @@
-    
-        <nav class="flex flex-col  md:flex-row justify-between items-center px-4 md:px-8 py-4 bg-transparent transition-all duration-300">
-    
-                        <!-- Logo -->
-                        <a href="{% url 'home' %}"  class=" hidden md:flex items-center mb-4 md:mb-0">
-                            <div class="font-['Italiana'] font-normal text-[28px] md:text-[40px] text-white">Porn</div>
-                            <div class="font-['Irish_Grover'] font-normal text-[36px] md:text-[55px] text-[#a21892] ml-2">Flixe</div>
-                        </a>
+<style>
+  /* Animation fluide pour le popup recherche */
+  #search-popup {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  #search-popup:not(.pointer-events-none) {
+    transform: translateY(0);
+    opacity: 1;
+  }
 
-                        <div class="md:hidden bg-[#0f0203] flex items-center w-full justify-between flex-col  fixed  top-0 left-0 right-0 z-[999] px-4 py-4 ">
-                            <div class="flex justify-between w-full items-center gap-2 "> 
-                                <a href="{% url 'home' %}" class="flex items-center  ">
-                                    <div class="font-['Italiana'] font-normal text-[28px] md:text-[40px] text-white">Porn</div>
-                                    <div class="font-['Irish_Grover'] font-normal text-[36px] md:text-[55px] text-[#a21892] ml-2">Flixe</div>
-                                </a>
+  /* Focus input agrandit légèrement */
+  input:focus ~ .bx-search {
+    left: 16px;
+    opacity: 0.7;
+  }
+</style>
+
+<nav class="flex flex-col md:flex-row justify-between items-center px-4 md:px-8 py-4 bg-transparent transition-all duration-300">
+  <!-- Logo Desktop -->
+  <a href="{% url 'home' %}" class="hidden md:flex items-center mb-4 md:mb-0">
+    <div class="font-['Italiana'] font-normal text-[28px] md:text-[40px] text-white">Porn</div>
+    <div class="font-['Irish_Grover'] font-normal text-[36px] md:text-[55px] text-[#a21892] ml-2">Flixe</div>
+  </a>
+
+  <!-- Mobile Header (Logo + Search + Hamburger) -->
+  <div class="md:hidden bg-[#0f0203] w-full fixed top-0 left-0 right-0 z-[999] px-4 py-4 flex items-center justify-between">
+    <a href="{% url 'home' %}" class="flex items-center">
+      <div class="font-['Italiana'] font-normal text-[28px] text-white">Porn</div>
+      <div class="font-['Irish_Grover'] font-normal text-[36px] text-[#a21892] ml-2">Flixe</div>
+    </a>
+
+    <div class="flex items-center gap-4">
+      <!-- Bouton Recherche Mobile -->
+      <button id="search-toggle" class="text-white focus:outline-none">
+        <i class='bx bx-search text-2xl'></i>
+      </button>
+
+      <!-- Bouton Menu Hamburger -->
+      <button id="menu-toggle" class="text-white focus:outline-none">
+        <i class='bx bx-menu text-2xl'></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- 🔍 Popup de Recherche Mobile -->
+  <div id="search-popup" class="md:hidden fixed inset-0 z-[998] bg-[#0f0203] flex flex-col pt-20 px-6 pb-8 transform -translate-y-full opacity-0 pointer-events-none transition-all duration-300">
+    <form action="{% url 'search' %}" method="get" class="mb-6 relative mt-12">
+      <input
+        type="text"
+        name="q"
+        placeholder="Rechercher des vidéos, photos..."
+        class="w-full pl-12 pr-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full outline-none text-white placeholder-gray-300 text-sm focus:ring-2 focus:ring-[#a21892] focus:pl-14 transition-all"
+        autofocus
+      />
+      <i class='bx bx-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-300 text-xl'></i>
+      <button type="button" id="close-search" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white">
+        <i class='bx bx-x text-2xl'></i>
+      </button>
+    </form>
+    <p class="text-gray-400 text-sm">Appuyez sur Entrée pour lancer la recherche</p>
+  </div>
+
+  <!-- ☰ Menu Mobile (comme avant) -->
+  <div id="mobile-menu" class="md:hidden fixed inset-0 z-[997] bg-[#0f0203] transform -translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto hidden">
+    <div class="flex flex-col h-full pt-20 px-6 pb-8">
+
+      <!-- Navigation Links -->
+      <nav class="flex flex-col gap-4 mb-8">
+        <a href="{% url 'home' %}" class="flex items-center gap-4 p-3 text-white rounded-lg hover:bg-white/10 transition {% if request.path == '/' %}bg-white/10{% endif %}">
+          <i class='bx bx-home text-2xl'></i>
+          <span>Home</span>
+        </a>
+        <a href="{% url 'series' %}" class="flex items-center gap-4 p-3 text-white rounded-lg hover:bg-white/10 transition {% if request.path == '/series' %}bg-white/10{% endif %}">
+          <i class='bx bx-tv text-2xl'></i>
+          <span>Séri</span>
+        </a>
+        <a href="{% url 'films' %}" class="flex items-center gap-4 p-3 text-white rounded-lg hover:bg-white/10 transition {% if request.path == '/films' %}bg-white/10{% endif %}">
+          <i class='bx bxs-film text-2xl'></i>
+          <span>Film</span>
+        </a>
+        <a href="{% url 'shorts' %}" class="flex items-center gap-4 p-3 text-white rounded-lg hover:bg-white/10 transition {% if request.path == '/short_videos' %}bg-white/10{% endif %}">
+          <i class='bx bx-play text-2xl'></i>
+          <span>Short Video</span>
+        </a>
+        <a href="{% url 'photos' %}" class="flex items-center gap-4 p-3 text-white rounded-lg hover:bg-white/10 transition {% if request.path == '/photos' %}bg-white/10{% endif %}">
+          <i class='bx bx-image-alt text-2xl'></i>
+          <span>Photo</span>
+        </a>
+        <a href="{% url 'genres' %}" class="flex items-center gap-4 p-3 text-white rounded-lg hover:bg-white/10 transition {% if request.path == '/genres' %}bg-white/10{% endif %}">
+          <i class='bx bx-filter text-2xl'></i>
+          <span>Genre</span>
+        </a>
+        <div onclick="openUsernamePopup()" class="flex items-center gap-4 p-3 text-white rounded-lg hover:bg-white/10 transition cursor-pointer">
+          <i class='bx bx-user text-2xl'></i>
+          <span>Profil</span>
+        </div>
+      </nav>
+
+      <!-- User Section -->
+      {% if user.is_authenticated %}
+        <div class="border-t border-white/20 pt-6 mt-auto">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-[#a21892] rounded-full flex items-center justify-center">
+              <span class="text-white font-semibold text-lg">{{ user.username|upper|slice:"0:1" }}</span>
+            </div>
+            <div>
+              <h3 class="text-white font-medium">{{ user.username }}</h3>
+              {% if has_active_subscription %}
+                <p class="text-green-400 text-xs flex items-center mt-1">
+                  <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                  ABONNÉ • Expire le {{ user_subscription.end_date|date:"d/m/Y" }}
+                </p>
+              {% else %}
+                <a href="{% url 'subscribe' %}" class="text-red-400 text-xs hover:underline">Non abonné • S'abonner</a>
+              {% endif %}
+            </div>
+          </div>
+          <a href="{% url 'account_logout' %}" class="flex items-center gap-2 text-gray-300 hover:text-white transition">
+            <i class='bx bx-log-out text-xl'></i>
+            <span>Déconnexion</span>
+          </a>
+        </div>
+      {% else %}
+        <div class="border-t border-white/20 pt-6 mt-auto">
+          <div class="flex flex-col gap-3">
+            <a href="{% url 'account_login' %}" class="flex items-center justify-center gap-2 py-3 bg-white/10 hover:bg-white/20 rounded-lg transition">
+              <i class='bx bx-log-in text-xl'></i>
+              <span>Connexion</span>
+            </a>
+            <a href="{% url 'account_signup' %}" class="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-[#a21892] to-[#e94057] text-white rounded-lg transition hover:from-[#c43a7d] hover:to-[#f06a7d]">
+              <i class='bx bx-user-plus text-xl'></i>
+              <span>S’inscrire</span>
+            </a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Desktop Navigation Pills -->
+  <div id="nav-pills" class="hidden md:flex items-center gap-2 mb-4 md:mb-0 text-white">
+    <a href="{% url 'home' %}" class="pill {% if request.path == '/' %}active{% endif %}">Home</a>
+    <a href="{% url 'series' %}" class="pill {% if request.path == '/series' %}active{% endif %}">Séri</a>
+    <a href="{% url 'films' %}" class="pill {% if request.path == '/films' %}active{% endif %}">Film</a>
+    <a href="{% url 'shorts' %}" class="pill {% if request.path == '/short_videos' %}active{% endif %}">Short</a>
+    <a href="{% url 'photos' %}" class="pill {% if request.path == '/photos' %}active{% endif %}">Photo</a>
+    <a href="{% url 'genres' %}" class="pill {% if request.path == '/genres' %}active{% endif %}">Genre</a>
+  </div>
+
+  <!-- Desktop Search + Profile -->
+  <form action="{% url 'search' %}" method="get" class="hidden md:flex items-center gap-4 mt-4 md:mt-0">
+    <div class="relative flex items-center">
+      <input
+        type="text"
+        name="q"
+        placeholder="Search..."
+        class="w-40 pl-10 pr-4 py-2 bg-white rounded-full outline-none placeholder-gray-500 text-sm"
+      />
+      <i class='bx bx-search absolute left-3 text-gray-500'></i>
+    </div>
+    <div class="relative w-[133px] h-[39px] rounded-[33px] cursor-pointer group">
+      <div class="absolute inset-0 bg-[#a21892] rounded-[33px] blur-sm"></div>
+      <div id="open-sidebar" class="absolute inset-0 flex items-center justify-start bg-black/20 rounded-[33px] transition-all duration-300 group-hover:bg-black/40">
+        {% if user.is_authenticated %}
+          <div class="ml-1 w-[31px] h-[31px] bg-black rounded-full flex items-center justify-center text-white text-sm font-medium">
+            {{ user.username|upper|slice:"0:1" }}
+          </div>
+          <span class="ml-3 text-white text-sm whitespace-nowrap">{{ user.username|truncatechars:6 }}</span>
+        {% else %}
+          <div class="ml-1 w-[31px] h-[31px] bg-black rounded-full flex items-center justify-center">
+            <i class='bx bx-user text-white'></i>
+          </div>
+          <span class="ml-3 text-white text-sm whitespace-nowrap">Connexion</span>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+</nav>
 
 
-                                <!-- Hamburger Menu for Mobile -->
-                                <button class="md:hidden text-white focus:outline-none">
-                                <i class='bx bx-menu text-2xl'></i>
-                                </button>
-                            </div>
-                            
 
-                                <!-- Mobile Menu -->
-                                
-                        <div id="mobile-menu" class="md:hidden hidden px-4 pb-4 h-screen  flex justify-start w-screen flex-col gap-4 bg-transparent"><br><br>
-                            <a href="{% url 'home' %}" class="pill-mobile block py-2 text-white flex items-center gap-4  w-screen rounded-lg hover:bg-white/10 transition {% if request.path == '/' %}active{% endif %}" >  <i class='bx bx-home text-3xl' ></i>Home</a>
-                            <a href="{% url 'series' %}" class="pill-mobile block py-2 text-white flex items-center gap-4  w-screen rounded-lg hover:bg-white/10 transition {% if request.path == '/series' %}active{% endif %}"><i class='bx bx-tv text-3xl'></i> Séri</a>
-                            <a href="{% url 'films' %}" class="pill-mobile block py-2 text-white  flex items-center  gap-4  w-screen rounded-lg hover:bg-white/10 transition {% if request.path == '/films' %}active{% endif %}"><i class='bx bxs-film text-3xl' ></i>Film</a>  
-                            <a href="{% url 'shorts' %}" class="pill-mobile block py-2 text-white  flex items-center  gap-4  w-screen rounded-lg hover:bg-white/10 transition {% if request.path == '/short_videos' %}active{% endif %}"><i class='bx bx-play text-3xl' ></i>Short Video</a>
-                            <a href="{% url 'photos' %}" class="pill-mobile block py-2 text-white flex items-center gap-4   w-screen  rounded-lg hover:bg-white/10 transition {% if request.path == '/photos' %}active{% endif %}"><i class='bx bx-image-alt text-3xl' ></i>Photo</a>
-                            <a href="{% url 'genres' %}" class="pill-mobile block py-2 text-white  flex items-center  gap-4  w-screen rounded-lg hover:bg-white/10 transition {% if request.path == '/genres' %}active{% endif %}"><i class='bx bx-filter text-3xl' ></i>Genre</a>  
-                            <div  class="pill-mobile block py-2 text-white  flex items-center  gap-4  w-screen rounded-lg hover:bg-white/10 transition"onclick="openUsernamePopup()" ><i class='bx bx-user text-3xl' ></i>Profil</div>  
+<script>
+  const menuToggle = document.getElementById('menu-toggle');
+  const searchToggle = document.getElementById('search-toggle');
+  const closeSearch = document.getElementById('close-search');
+  const mobileMenu = document.getElementById('mobile-menu');
+  const searchPopup = document.getElementById('search-popup');
 
-                            <div class="md:hidden bg-[#0f0203] flex items-center w-full justify-between flex-col">
-                                    {% if user.is_authenticated %}
-                            <div class="flex w-full items-center justify-between gap-2 ">
-                                <div class="flex w-full items-center gap-2 ">
-                                    <div class="ml-4 bg-[#a21892] rounded-full flex items-center justify-center ease-in-out duration-300 hover:bg-white/10 transition-all w-[50px] h-[50px]">
-                                    <div class="text-white text-lg text-center">
-                                        <span class="lg:hidden">{{ user.username|upper|slice:"0:1" }}</span>
-                                    </div>
-                                </div>
-                                <div class="ml-4">
-                                    <h2 class="font-bold text-gray-100 text-lg">
-                                        {{ user.username }}
-                                    <p class="text-sm text-gray-400">
-                                        {% if has_active_subscription %}
-                                        <span class="  py-1 rounded-full   text-green-400 text-xs font-medium flex items-center transition-all hover:scale-105">
-                                            <span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
-                                            ABONNÉ {{ user_subscription.plan.name|upper }}
-                                        </span>
-                                        <p class="text-xs text-gray-400/80 animate-fade-in">Expire le {{ user_subscription.end_date|date:"d/m/Y" }}</p>
-                                    {% else %}
-                                        <span class=" py-1 rounded-full   text-red-400 text-xs font-medium flex items-center transition-all hover:scale-105">
-                                            <span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span>
-                                            NON ABONNÉ
-                                        </span>
-                                        <a href="{% url 'subscribe' %}" class="text-xs font-medium bg-gradient-to-r from-[#a21892] to-[#e94057] text-transparent bg-clip-text hover:underline transition-all duration-300 hover:scale-105 inline-block">
-                                            S'abonner maintenant
-                                        </a>
-                                    {% endif %}
-                                    </p>
-                                </div>
-                            </div>
-                                <a href="{% url 'account_logout' %}" class="text-gray-600 hover:text-gray-800 transition-colors">
-                                    <i class='bx bx-log-out text-gray-100 text-3xl text-[#a21892]'></i>
-                                </a>
-                            </div>
-                            {% else %}
-                                    <div class="flex w-full items-center gap-2 ">
-                                    <div class="relative">
+  // Ouvrir le menu ☰
+  menuToggle.addEventListener('click', () => {
+    mobileMenu.classList.remove('hidden');
+    setTimeout(() => {
+      mobileMenu.classList.remove('-translate-x-full');
+    }, 10);
+    // Fermer recherche si ouverte
+    searchPopup.classList.add('-translate-y-full', 'opacity-0');
+    setTimeout(() => searchPopup.classList.add('pointer-events-none'), 300);
+  });
 
-                                        <div class="absolute inset-0 rounded-full shadow-inner">
-                                        <i class='bx  bx-user text-xl'></i>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center justify-center gap-4 text-white">
-                                        <a href="{% url 'account_login' %}" class="block py-2 px-4 rounded-full hover:bg-[#a21892]  border-2 border-[#a21892] hover:bg-opacity-30 transition">
-                                            <i class='bx bx-log-in mr-3'></i> Connexion
-                                        </a>
-                                        <a href="{% url 'account_signup' %}" class="block py-2 px-4 rounded-full hover:bg-[#a21892]  border-2 border-[#a21892] hover:bg-opacity-30 transition">
-                                            <i class='bx bx-user-plus mr-3'></i> S’inscrire
-                                        </a>
-                                    </div>
-                                    
-                                </div>
-                                
-                                
-                            {% endif %}
-                        </div>
-                        </a>
+  // Ouvrir la recherche 🔍
+  searchToggle.addEventListener('click', () => {
+    searchPopup.classList.remove('pointer-events-none');
+    setTimeout(() => {
+      searchPopup.classList.remove('-translate-y-full', 'opacity-0');
+    }, 10);
+    // Fermer menu si ouvert
+    mobileMenu.classList.add('-translate-x-full');
+    setTimeout(() => mobileMenu.classList.add('hidden'), 300);
+  });
 
-                        
-                    </div>
+  // Fermer la recherche avec ✕
+  closeSearch.addEventListener('click', () => {
+    searchPopup.classList.add('-translate-y-full', 'opacity-0');
+    setTimeout(() => searchPopup.classList.add('pointer-events-none'), 300);
+  });
 
-                
-                    </div>
-                
-                    <div id="nav-pills" class="hidden md:flex items-center gap-2 mb-4 md:mb-0 transition-all duration-300 text-white ">
-                            <a href="{% url 'home' %}" class="pill  {% if request.path == '/' %}active{% endif %}">
-                                <span>Home</span>
-                            </a>
-                            <a href="{% url 'series' %}" class="pill {% if request.path == '/series' %}active{% endif %}">
-                                <span>Séri</span>
-                            </a>
-                            <a href="{% url 'films' %}" class="pill {% if request.path == '/films' %}active{% endif %}">
-                                <span>Film</span>
-                            </a>
-                            <a href="{% url 'shorts' %}" class="pill  {% if request.path == '/short_videos' %}active{% endif %}">
-                                <span>Short  </span>
-                            </a>
-                            <a href="{% url 'photos' %}" class="pill {% if request.path == '/photos' %}active{% endif %}">
-                                <span>Photo</span>
-                            </a>
-                            <a href="{% url 'genres' %}" class="pill {% if request.path == '/genres' %}active{% endif %}">
-                                <span>Genre</span>
-                            </a>
-                        </div>
-                    <!-- Search + User Profile -->
-                    <form action="{% url 'search' %}" method="get" class="flex items-center w-full     md:w-auto gap-4 mt-4 md:mt-0 md:pt-0 pt-40">
-                        <!-- Search Input -->
-                        <div class="relative flex items-center w-full hover:w-[140px] md:w-[40px] mr-4 transition-all duration-300">
-                        <input
-                            class="w-full pl-10 pr-4 py-2 bg-white rounded-full outline-none placeholder-gray-500 text-[12px] md:text-lg"
-                            type="text"
-                            name="q" 
-                            placeholder="Search..."
-                        />
-                        <i class='bx bx-search absolute left-3 text-gray-500'></i>
-                        </div>
-
-                        <!-- User Profile -->
-                        <div class="relative w-[133px] h-[39px] rounded-[33px] hidden md:block cursor-pointer group">
-                        <div class="absolute inset-0 bg-[#a21892] rounded-[33px] blur-sm"></div>
-                        <div id="open-sidebar" class="absolute inset-0 flex items-center justify-start bg-black/20 rounded-[33px] transition-all duration-300 group-hover:bg-black/40">
-                        {% if user.is_authenticated %}
-                            <div class="ml-1 w-[31px] h-[31px] bg-black rounded-full flex items-center justify-center text-white text-sm font-medium">
-                                {{ user.username|upper|slice:"0:1" }}
-                            </div>
-                            <span class="ml-3 text-white text-sm whitespace-nowrap">{{ user.username|truncatechars:6 }}</span>
-                            {% else %}
-                            <div class="ml-1 w-[31px] h-[31px] bg-black rounded-full flex items-center justify-center">
-                                <i class='bx bx-user text-white'></i>
-                            </div>
-                            <span class="ml-3 text-white text-sm whitespace-nowrap">Connexion</span>
-                            {% endif %}
-                        </div>
-                        </div>
-
-                    </form>
-        </nav>
-
+  // Optionnel : Fermer avec ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (!searchPopup.classList.contains('opacity-0')) {
+        searchPopup.classList.add('-translate-y-full', 'opacity-0');
+        setTimeout(() => searchPopup.classList.add('pointer-events-none'), 300);
+      }
+      if (!mobileMenu.classList.contains('hidden')) {
+        mobileMenu.classList.add('-translate-x-full');
+        setTimeout(() => mobileMenu.classList.add('hidden'), 300);
+      }
+    }
+  });
+</script>
