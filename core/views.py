@@ -496,134 +496,66 @@ from paypal.standard.ipn.signals import valid_ipn_received
 from django.dispatch import receiver
 
 
-
-
-def _activate_subscription(user_id, plan_id):
-    """Active ou met à jour l'abonnement"""
+def activate_subscription(user_id, plan_id):
+    """Active un nouvel abonnement en désactivant les anciens"""
     with transaction.atomic():
         try:
-            user = get_user_model().objects.get(id=user_id)
+            user = get_user_model().objects.select_for_update().get(id=user_id)
             plan = SubscriptionPlan.objects.get(id=plan_id)
             
-            # Désactiver les autres abonnements
-            UserSubscription.objects.filter(
-                user=user,
-                is_active=True
-            ).update(is_active=False)
+            # Désactiver TOUTS les abonnements existants (évite les doublons)
+            UserSubscription.objects.filter(user=user).update(is_active=False)
             
-            # Créer ou mettre à jour l'abonnement
-            UserSubscription.objects.update_or_create(
+            # Créer un nouvel abonnement (pas de update_or_create pour garder l'historique)
+            subscription = UserSubscription.objects.create(
                 user=user,
-                defaults={
-                    'plan': plan,
-                    'is_active': True,
-                    'start_date': timezone.now(),
-                    'end_date': timezone.now() + timedelta(days=plan.duration_days)
-                }
+                plan=plan,
+                is_active=True,
+                start_date=timezone.now(),
+                end_date=timezone.now() + timedelta(days=plan.duration_days)
             )
             
-            logger.info(f"Subscription activated for user {user_id}, plan {plan_id}")
+            logger.info(f"Abonnement activé pour user {user_id}, plan {plan_id}")
+            return subscription
             
         except Exception as e:
-            logger.error(f"Subscription activation failed: {str(e)}")
+            logger.exception(f"Échec activation abonnement: {str(e)}")
             raise
+
+
 
 def contact_support(request):
     return render(request, 'support/contact.html')
+
 
 class SuccessView(LoginRequiredMixin, BaseContextMixin, TemplateView):
     template_name = 'pages/dynamiquePages/payement/payment_success.html'
 
     def get(self, request, *args, **kwargs):
+        plan_id = request.GET.get('plan_id')
+        if not plan_id:
+            messages.warning(request, "Aucun plan d'abonnement spécifié")
+            return redirect('subscribe')
+
         try:
-            # Récupération du plan_id depuis les paramètres GET
-            plan_id = request.GET.get('plan_id')
-            if not plan_id:
-                messages.warning(request, "Aucun plan d'abonnement spécifié")
-                return redirect('subscribe')
+            plan = SubscriptionPlan.objects.get(id=plan_id)
+        except SubscriptionPlan.DoesNotExist:
+            messages.error(request, "Le plan d'abonnement spécifié n'existe pas")
+            return redirect('subscribe')
 
-            # Vérification que l'utilisateur est bien authentifié
-            if not request.user.is_authenticated:
-                raise PermissionDenied("Utilisateur non authentifié")
+        # NE PAS activer l'abonnement ici - attendre la confirmation IPN
+        messages.info(
+            request, 
+            "Votre paiement est en cours de traitement. "
+            "Votre abonnement sera activé automatiquement dès confirmation du paiement."
+        )
+        
+        return self.render_to_response({
+            'plan': plan,
+            'user': request.user,
+        })
 
-            # Récupération du plan d'abonnement
-            try:
-                plan = SubscriptionPlan.objects.get(id=plan_id)
-            except SubscriptionPlan.DoesNotExist:
-                messages.error(request, "Le plan d'abonnement spécifié n'existe pas")
-                return redirect('subscribe')
 
-            # Enregistrement de l'abonnement immédiatement plutôt que d'attendre l'IPN
-            try:
-                with transaction.atomic():
-                    # Désactiver les anciens abonnements
-                    UserSubscription.objects.filter(user=request.user).update(is_active=False)
-                    
-                    # Créer le nouvel abonnement
-                    subscription = UserSubscription.objects.create(
-                        user=request.user,
-                        plan=plan,
-                        start_date=timezone.now(),
-                        end_date=timezone.now() + timedelta(days=plan.duration_days),
-                        is_active=True
-                    )
-                    
-                    logger.info(f"Abonnement créé pour {request.user.username} - Plan: {plan.name}")
-
-                    # Stocker en session pour vérification ultérieure par IPN
-                    request.session['pending_subscription'] = {
-                        'user_id': request.user.id,
-                        'plan_id': plan_id,
-                        'subscription_id': subscription.id,
-                        'timestamp': timezone.now().isoformat()
-                    }
-
-                    # Message de succès
-                    messages.success(request, f"Votre abonnement {plan.name} a été activé avec succès!")
-                    
-                    # Envoyer un email de confirmation (optionnel)
-                    self._send_confirmation_email(request.user, plan)
-
-            except Exception as e:
-                logger.error(f"Erreur création abonnement: {str(e)}")
-                messages.error(request, "Une erreur est survenue lors de l'activation de votre abonnement")
-                return redirect('subscribe')
-
-            return self.render_to_response({
-                'plan': plan,
-                'user': request.user,
-                'subscription': subscription
-            })
-
-        except Exception as e:
-            logger.critical(f"Erreur inattendue dans SuccessView: {str(e)}")
-            messages.error(request, "Une erreur inattendue est survenue")
-            return redirect('home')
-
-    def _send_confirmation_email(self, user, plan):
-        """Envoie un email de confirmation (optionnel)"""
-        try:
-            subject = f"Confirmation de votre abonnement {plan.name}"
-            message = f"""
-            Bonjour {user.username},
-            
-            Votre abonnement {plan.name} a bien été activé.
-            Montant: {plan.price}€
-            Durée: {plan.duration_days} jours
-            
-            Merci pour votre confiance!
-            """
-            
-            send_mail(
-                subject,
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=True,
-            )
-            logger.info(f"Email de confirmation envoyé à {user.email}")
-        except Exception as e:
-            logger.error(f"Erreur envoi email confirmation: {str(e)}")
 
 @receiver(valid_ipn_received)
 def handle_paypal_ipn(sender, **kwargs):
@@ -631,27 +563,42 @@ def handle_paypal_ipn(sender, **kwargs):
     
     if ipn.payment_status == "Completed":
         try:
+            # Validation stricte des données
+            if not ipn.custom or ',' not in ipn.custom:
+                logger.error(f"IPN invalide - custom vide: {ipn.id}")
+                return
+                
             user_id, plan_id = map(int, ipn.custom.split(','))
-            user = get_object_or_404(User, id=user_id)
-            plan = get_object_or_404(SubscriptionPlan, id=plan_id)
             
-            # Désactiver les anciens abonnements
-            UserSubscription.objects.filter(user=user).update(is_active=False)
+            # Vérification supplémentaire du montant
+            plan = SubscriptionPlan.objects.get(id=plan_id)
+            if abs(ipn.mc_gross - float(plan.price)) > 0.01:
+                logger.warning(
+                    f"Montant PayPal {ipn.mc_gross} ≠ plan {plan.price} "
+                    f"(user_id={user_id}, plan_id={plan_id})"
+                )
+                # Optionnel : notifier l'admin ici
+
+            # Activation centralisée via notre fonction
+            activate_subscription(user_id, plan_id)
             
-            # Créer le nouvel abonnement
-            UserSubscription.objects.create(
-                user=user,
-                plan=plan,
-                start_date=timezone.now(),
-                end_date=timezone.now() + timedelta(days=plan.duration_days),
-                is_active=True
+            # Notification utilisateur
+            user = get_user_model().objects.get(id=user_id)
+            send_mail(
+                f"✅ Abonnement {plan.name} activé !",
+                f"Bonjour {user.username},\n\n"
+                f"Votre abonnement {plan.name} est désormais actif !\n"
+                f"Période : {timezone.now().strftime('%d/%m/%Y')} → "
+                f"{(timezone.now() + timedelta(days=plan.duration_days)).strftime('%d/%m/%Y')}\n\n"
+                "Merci pour votre confiance !",
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
             )
             
-            logger.info(f"Abonnement créé pour {user.username} - Plan: {plan.name}")
-            
+        except (ValueError, SubscriptionPlan.DoesNotExist) as e:
+            logger.error(f"Erreur IPN parsing: {str(e)} | custom={ipn.custom}")
         except Exception as e:
-            logger.error(f"Erreur création abonnement: {str(e)}")
-
+            logger.exception(f"Échec traitement IPN {ipn.id}: {str(e)}")
 
 
 

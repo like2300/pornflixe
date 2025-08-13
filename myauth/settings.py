@@ -157,7 +157,7 @@ if not DEBUG:
     AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_S3_REGION_NAME = 'us-east-1'
     AWS_DEFAULT_ACL = None
-    AWS_S3_VERITY = True 
+    AWS_S3_VERIFY = True  
 
     # Augmentez ces valeurs selon vos besoins (exemple pour 500MB)
     DATA_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500MB
