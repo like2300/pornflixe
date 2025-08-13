@@ -149,29 +149,42 @@ CSRF_TRUSTED_ORIGINS = config(
 
 # settings.py (en production)
 
-# === Stockage avec Cloudflare R2 ===
+
+
+# === CLOUDFLARE R2 STORAGE (Production uniquement) ===
 if not DEBUG:
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    # ⚠️ Ne pas surcharger STATICFILES_STORAGE ici si déjà défini → déplacez tout en prod
     STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
     AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
-    AWS_S3_ENDPOINT_URL = f"https://{config('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com"
-    AWS_S3_REGION_NAME = 'eu-west-3'  # ou 'auto'
 
-    # URL publique de développement (temporaire mais fonctionnelle)
-    AWS_S3_CUSTOM_DOMAIN = 'pub-59c16ed9bd0f49b39e390e5a2996e00d.r2.dev'
+    # ✅ Endpoint correct : basé sur le "Access Key ID" fourni par Cloudflare (le hash dans l’URL)
+    AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL', default='https://f6504dd3e2712d5347f19e3853d64bbf.r2.cloudflarestorage.com ')
 
-    STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+    AWS_S3_REGION_NAME = 'auto'  # R2 ignore cette valeur, mais boto3 l’exige
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.r2.cloudflarestorage.com'
 
-    AWS_QUERYSTRING_AUTH = False
-    AWS_S3_FILE_OVERWRITE = False
+    # 🔗 Utilisez le domaine public r2.dev si activé (recommandé pour le CDN)
+    # Exemple : pub-59c16ed9bd0f49b39e390e5a2996e00d.r2.dev
+    R2_CDN_DOMAIN = config('R2_CDN_DOMAIN', default='')  # Optionnel
+    if R2_CDN_DOMAIN:
+        STATIC_URL = f'https://{R2_CDN_DOMAIN}/static/'
+        MEDIA_URL = f'https://{R2_CDN_DOMAIN}/'
+    else:
+        STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+        MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+
+    # Paramètres R2
+    AWS_QUERYSTRING_AUTH = False  # Ne pas signer les URLs → plus rapide
+    AWS_S3_FILE_OVERWRITE = False  # Évite d’écraser les fichiers
     AWS_DEFAULT_ACL = 'public-read'
     AWS_S3_OBJECT_PARAMETERS = {
         'CacheControl': 'max-age=86400',
     }
+
 
 # paypal
   
