@@ -156,7 +156,7 @@ if not DEBUG:
     # === CREDENTIALS AWS ===
     AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = 'fillesvideostreams'  # ✅ Nom corrigé
+    AWS_STORAGE_BUCKET_NAME = 'myapp-static-assets-app'  # ✅ Nom corrigé
     AWS_S3_REGION_NAME = 'eu-north-1'  # ✅ Région Stockholm
 
     # === PARAMÈTRES S3 RECOMMANDÉS ===
