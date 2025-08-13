@@ -150,42 +150,25 @@ CSRF_TRUSTED_ORIGINS = config(
 # settings.py (en production)
 
 
-
-# === CLOUDFLARE R2 STORAGE (Production uniquement) ===
+# === STORAGE (R2) ===
 if not DEBUG:
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    # ⚠️ Ne pas surcharger STATICFILES_STORAGE ici si déjà défini → déplacez tout en prod
-    STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    # Utilise les classes personnalisées
+    DEFAULT_FILE_STORAGE = 'myauth.storage.MediaStorage'
+    STATICFILES_STORAGE = 'myauth.storage.StaticStorage'
 
+    # Identifiants R2
     AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
+    AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')  # https://xxx.r2.cloudflarestorage.com
+    AWS_S3_REGION_NAME = 'auto'
 
-    # ✅ Endpoint correct : basé sur le "Access Key ID" fourni par Cloudflare (le hash dans l’URL)
-    AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL', default='https://f6504dd3e2712d5347f19e3853d64bbf.r2.cloudflarestorage.com ')
+    # ✅ Utilisez le CDN R2 (r2.dev) pour les URLs publiques
+    AWS_S3_CUSTOM_DOMAIN = f"{config('R2_CDN_DOMAIN')}"  # ex: pub-xxx.r2.dev
 
-    AWS_S3_REGION_NAME = 'auto'  # R2 ignore cette valeur, mais boto3 l’exige
-    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.r2.cloudflarestorage.com'
-
-    # 🔗 Utilisez le domaine public r2.dev si activé (recommandé pour le CDN)
-    # Exemple : pub-59c16ed9bd0f49b39e390e5a2996e00d.r2.dev
-    R2_CDN_DOMAIN = config('R2_CDN_DOMAIN', default='')  # Optionnel
-    if R2_CDN_DOMAIN:
-        STATIC_URL = f'https://{R2_CDN_DOMAIN}/static/'
-        MEDIA_URL = f'https://{R2_CDN_DOMAIN}/'
-    else:
-        STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
-        MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
-
-    # Paramètres R2
-    AWS_QUERYSTRING_AUTH = False  # Ne pas signer les URLs → plus rapide
-    AWS_S3_FILE_OVERWRITE = False  # Évite d’écraser les fichiers
-    AWS_DEFAULT_ACL = 'public-read'
-    AWS_S3_OBJECT_PARAMETERS = {
-        'CacheControl': 'max-age=86400',
-    }
-
-
+    # Pas de signature dans l'URL
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_FILE_OVERWRITE = False
 # paypal
   
 PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID')
