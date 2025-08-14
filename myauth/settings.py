@@ -173,7 +173,7 @@ if DEBUG:
 
 
 PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID')
-PAYPAL_SECRET = config('PAYPAL_SECRET')
+PAYPAL_SECRET = config('PAYPAL_SECRET')             
  
 PAYPAL_ENV = config('PAYPAL_ENV', default='sandbox')  # Par défaut sandbox
 PAYPAL_TEST = config('PAYPAL_TEST', default=True, cast=bool)                 # False en prod
