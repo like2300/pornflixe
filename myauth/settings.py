@@ -148,29 +148,30 @@ CSRF_TRUSTED_ORIGINS = config(
 
 
 # settings.py (en production)
+ 
 
-
-# === STORAGE (R2) ===
+# === Cloudflare R2 ===
 if not DEBUG:
-    # Utilise les classes personnalisées
-    DEFAULT_FILE_STORAGE = 'myauth.storage.MediaStorage'
-    STATICFILES_STORAGE = 'myauth.storage.StaticStorage'
+    DEFAULT_FILE_STORAGE = 'core.storage.MediaStorage'
+    STATICFILES_STORAGE = 'core.storage.StaticStorage'
 
-    # Identifiants R2
     AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
-    AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')  # https://xxx.r2.cloudflarestorage.com
-    AWS_S3_REGION_NAME = 'auto'
+    AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
+    AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN')
 
-    # ✅ Utilisez le CDN R2 (r2.dev) pour les URLs publiques
-    AWS_S3_CUSTOM_DOMAIN = f"{config('R2_CDN_DOMAIN')}"  # ex: pub-xxx.r2.dev
-
-    # Pas de signature dans l'URL
-    AWS_QUERYSTRING_AUTH = False
+    AWS_QUERYSTRING_AUTH = False  # URLs publiques sans signature
     AWS_S3_FILE_OVERWRITE = False
 # paypal
-  
+
+
+if DEBUG:
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
 PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID')
 PAYPAL_SECRET = config('PAYPAL_SECRET')
  
@@ -178,6 +179,8 @@ PAYPAL_ENV = config('PAYPAL_ENV', default='sandbox')  # Par défaut sandbox
 PAYPAL_TEST = config('PAYPAL_TEST', default=True, cast=bool)                 # False en prod
 PAYPAL_RECEIVER_EMAIL =  config('PAYPAL_RECEIVER_EMAIL', default='sb-chiak44231938@business.example.com')
 SUPPORT_EMAIL = "support@tonsite.com"
+# === SOCIAL LOGIN (GOOGLE) ===
+
 # === SOCIAL LOGIN (GOOGLE) ===
 
 SOCIALACCOUNT_PROVIDERS = {

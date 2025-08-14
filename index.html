@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr" x-data x-init="$store.anim.init()" class="scroll-smooth">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Elenga Omer Fils — Portfolio (Django • Frontend • Linux)</title>
+
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Inter', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto'],
+          },
+          colors: {
+            neon: {
+              50: '#eaf7ff',
+              100: '#cceeff',
+              200: '#99ddff',
+              300: '#66ccff',
+              400: '#33bbff',
+              500: '#10a5ff',
+              600: '#0b82cc',
+              700: '#076099',
+              800: '#053f66',
+              900: '#032033',
+            },
+          },
+          boxShadow: {
+            glass: '0 10px 30px rgba(16,165,255,0.25), inset 0 1px 0 rgba(255,255,255,0.12)',
+          },
+          backdropBlur: { xs: '2px' },
+          keyframes: {
+            float: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } },
+            shimmer: { '0%': { 'background-position': '-200% 0' }, '100%': { 'background-position': '200% 0' } },
+            blob: {
+              '0%': { transform: 'translate(0px,0px) scale(1)' },
+              '33%': { transform: 'translate(20px,-30px) scale(1.1)' },
+              '66%': { transform: 'translate(-30px,10px) scale(0.9)' },
+              '100%': { transform: 'translate(0px,0px) scale(1)' },
+            },
+            fadeup: { '0%': { opacity: 0, transform: 'translateY(24px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+            pulseSoft: { '0%,100%': { opacity: .7 }, '50%': { opacity: 1 } },
+          },
+          animation: {
+            float: 'float 6s ease-in-out infinite',
+            blob: 'blob 18s ease-in-out infinite',
+            fadeup: 'fadeup .8s ease-out forwards',
+            pulseSoft: 'pulseSoft 3s ease-in-out infinite',
+          },
+          backgroundImage: {
+            aurora:
+              'radial-gradient(60rem 40rem at 20% -10%, rgba(16,165,255,.25), transparent 60%), radial-gradient(40rem 30rem at 100% 10%, rgba(0,255,255,.15), transparent 65%), radial-gradient(40rem 20rem at 60% 120%, rgba(0,40,80,.7), transparent 70%)',
+          },
+        },
+      },
+    }
+  </script>
+
+  <!-- Alpine.js + plugins (intersect, collapse) -->
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="https://unpkg.com/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+
+  <style>
+    /* utilitaires “glass” et “show-on-scroll” */
+    .glass { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    .card-appear { opacity: 0; transform: translateY(16px); transition: all .7s cubic-bezier(.2,.65,.2,1); }
+    .card-appear.show { opacity: 1; transform: translateY(0); }
+    /* bouton bordure néon */
+    .btn-neon { position: relative; }
+    .btn-neon:before {
+      content: ""; position: absolute; inset: -2px;
+      background: linear-gradient(90deg, #10a5ff, #06b6d4, #0b82cc);
+      filter: blur(6px); opacity: .7; z-index: -1; border-radius: 9999px;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen font-display text-white bg-[#02060d] bg-aurora selection:bg-neon-400/40 selection:text-white">
+
+  <!-- décor: blobs liquides -->
+  <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div class="absolute -top-24 -left-16 h-72 w-72 rounded-full bg-neon-500/20 blur-3xl animate-blob"></div>
+    <div class="absolute top-40 -right-10 h-80 w-80 rounded-full bg-cyan-400/20 blur-3xl animate-blob [animation-delay:6s]"></div>
+    <div class="absolute bottom-10 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full bg-blue-900/40 blur-3xl animate-blob [animation-delay:12s]"></div>
+  </div>
+
+  <!-- NAV -->
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-black/40 border-b border-white/10">
+    <nav class="mx-auto max-w-7xl px-4 md:px-6 py-3 flex items-center justify-between">
+      <a href="#home" class="flex items-center gap-3 group">
+        <!-- Crown-like logo -->
+        <svg class="w-8 h-8 text-neon-400 group-hover:animate-pulseSoft" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M5 20h14a1 1 0 0 0 .96-1.27l-2.4-8.4-4.04 3.37a1 1 0 0 1-1.28 0L8.2 10.33l-3.1 8.4A1 1 0 0 0 6 20H5zM7 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM12 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/>
+        </svg>
+        <span class="font-semibold tracking-wide">Elen<span class="text-neon-400">ga</span></span>
+      </a>
+
+      <div class="hidden md:flex items-center gap-6 text-sm">
+        <a href="#projets" class="opacity-80 hover:opacity-100">Projets</a>
+        <a href="#skills" class="opacity-80 hover:opacity-100">Compétences</a>
+        <a href="#xp" class="opacity-80 hover:opacity-100">Contributions</a>
+        <a href="#contact" class="opacity-80 hover:opacity-100">Contact</a>
+      </div>
+
+      <a href="#contact" class="btn-neon hidden md:inline-block rounded-full px-4 py-2 bg-white/10 hover:bg-white/15 border border-white/10 shadow-glass">Discuter</a>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <section id="home" class="mx-auto max-w-7xl px-4 md:px-6 pt-14 md:pt-24 pb-16">
+    <div class="grid lg:grid-cols-2 gap-10 items-center">
+      <div x-intersect="$el.classList.add('show')" class="card-appear">
+        <h1 class="text-3xl sm:text-5xl font-extrabold leading-tight mb-4">
+          Elenga Omer Fils
+          <span class="block text-transparent bg-clip-text bg-gradient-to-r from-neon-400 via-cyan-300 to-neon-600 animate-[shimmer_3s_linear_infinite] bg-[length:200%_100%]">
+            Développeur Django • Frontend • Linux
+          </span>
+        </h1>
+        <p class="text-white/80 max-w-xl mb-6">
+          Junior passionné de <b>Python/Django</b>, <b>HTML/CSS/JS</b>, adepte de l’<b>open-source</b>,
+          grand fan de <b>Linux</b> (Arch btw 😉) et contributeur actif sur <b>TwinFlex</b>.
+          J’aime créer des interfaces rapides, fluides et élégantes.
+        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          <a href="#projets" class="btn-neon rounded-full px-5 py-3 bg-neon-500/20 hover:bg-neon-500/25 border border-white/10 shadow-glass">Voir mes projets</a>
+          <a href="#contact" class="rounded-full px-5 py-3 bg-white/10 hover:bg-white/15 border border-white/10">Me contacter</a>
+        </div>
+
+        <!-- badges rapides -->
+        <div class="mt-6 flex flex-wrap gap-3 opacity-90">
+          <span class="glass rounded-full px-3 py-1 bg-white/10 border border-white/10 shadow-glass text-sm">Django</span>
+          <span class="glass rounded-full px-3 py-1 bg-white/10 border border-white/10 shadow-glass text-sm">Tailwind</span>
+          <span class="glass rounded-full px-3 py-1 bg-white/10 border border-white/10 shadow-glass text-sm">Alpine.js</span>
+          <span class="glass rounded-full px-3 py-1 bg-white/10 border border-white/10 shadow-glass text-sm">Linux • macOS</span>
+        </div>
+      </div>
+
+      <!-- visuel impactant -->
+      <div x-intersect="$el.classList.add('show')" class="relative card-appear">
+        <div class="relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-b from-neon-900/60 to-black/60 shadow-glass">
+          <img alt="Code & Linux" class="w-full h-[380px] object-cover opacity-80 mix-blend-screen"
+               src="https://images.unsplash.com/photo-1518773553398-650c184e0bb3?q=80&w=1400&auto=format&fit=crop" />
+          <!-- overlay wifi/crown icons bento vibe -->
+          <div class="absolute inset-0 p-6 flex flex-col justify-end">
+            <div class="grid grid-cols-3 gap-3">
+              <div class="glass rounded-2xl p-4 bg-neon-500/25 border border-white/10">
+                <svg class="w-8 h-8 mx-auto" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C7 3 2.73 5.11 0 8.5l2 2C4.27 8.12 7.92 6 12 6s7.73 2.12 10 4.5l2-2C21.27 5.11 17 3 12 3zm0 6c-4 0-7.27 1.61-9.33 3.91L4 15c1.53-1.76 4.62-3 8-3s6.47 1.24 8 3l1.33-2.09C19.27 10.61 16 9 12 9zm0 6c-2.67 0-5.05.88-6.66 2.34L8 21c1.05-.65 2.5-1 4-1s2.95.35 4 1l2.66-3.66C17.05 15.88 14.67 15 12 15z"/></svg>
+              </div>
+              <div class="glass rounded-2xl p-4 bg-white/10 border border-white/10">
+                <svg class="w-8 h-8 mx-auto" viewBox="0 0 24 24" fill="currentColor"><path d="M5 20h14a1 1 0 0 0 .96-1.27l-2.4-8.4-4.04 3.37a1 1 0 0 1-1.28 0L8.2 10.33l-3.1 8.4A1 1 0 0 0 6 20H5zM7 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM12 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>
+              </div>
+              <div class="glass rounded-2xl p-4 bg-neon-500/25 border border-white/10">
+                <svg class="w-8 h-8 mx-auto" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C7 3 2.73 5.11 0 8.5l2 2C4.27 8.12 7.92 6 12 6s7.73 2.12 10 4.5l2-2C21.27 5.11 17 3 12 3z"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BENTO PROJETS -->
+  <section id="projets" class="mx-auto max-w-7xl px-4 md:px-6 pb-6 md:pb-12">
+    <div class="flex items-end justify-between mb-6">
+      <h2 class="text-2xl md:text-3xl font-bold">Projets en vedette</h2>
+      <span class="text-white/60 text-sm">Sélection – Django • JS • UI</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- CARD 1 -->
+      <article x-data="{hover:false}" @mouseenter="hover=true" @mouseleave="hover=false"
+               x-intersect="$el.classList.add('show')" class="card-appear relative rounded-3xl border border-white/10 bg-white/5 glass shadow-glass overflow-hidden">
+        <img src="https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1400&auto=format&fit=crop"
+             alt="Dashboard Django" class="h-48 w-full object-cover opacity-80" />
+        <div class="p-5">
+          <h3 class="text-lg font-semibold">Panel Admin sur-mesure (Django + Tailwind)</h3>
+          <p class="text-white/70 text-sm mt-1">Refonte complète de l’admin avec statistiques temps réel, permissions fines, charts et design morphique.</p>
+          <div class="mt-4 flex items-center gap-2 text-xs">
+            <span class="px-2 py-1 rounded-full bg-neon-500/20 border border-white/10">Django</span>
+            <span class="px-2 py-1 rounded-full bg-white/10 border border-white/10">Alpine</span>
+            <span class="px-2 py-1 rounded-full bg-white/10 border border-white/10">PostgreSQL</span>
+          </div>
+        </div>
+        <a href="#" class="absolute bottom-4 right-4 btn-neon rounded-full px-3 py-2 bg-white/10 border border-white/10">Voir</a>
+        <div x-show="hover" x-transition.opacity class="absolute inset-0 bg-black/30"></div>
+      </article>
+
+      <!-- CARD 2 -->
+      <article x-intersect="$el.classList.add('show')" class="card-appear relative rounded-3xl border border-white/10 bg-gradient-to-br from-neon-800/50 to-black/40 glass shadow-glass overflow-hidden">
+        <div class="p-5">
+          <h3 class="text-lg font-semibold">API Résultats Étudiants + WhatsApp</h3>
+          <p class="text-white/70 text-sm mt-1">Service Django REST + webhooks pour envoyer des bulletins PDF via WhatsApp après paiement.</p>
+          <div class="mt-4 flex items-center gap-2 text-xs">
+            <span class="px-2 py-1 rounded-full bg-neon-500/20 border border-white/10">DRF</span>
+            <span class="px-2 py-1 rounded-full bg-white/10 border border-white/10">UltraMsg</span>
+            <span class="px-2 py-1 rounded-full bg-white/10 border border-white/10">Yabetoopay</span>
+          </div>
+        </div>
+        <img src="https://images.unsplash.com/photo-1587620931283-8623e83d1f03?q=80&w=1400&auto=format&fit=crop"
+             alt="API & Automation" class="w-full h-40 object-cover opacity-70" />
+      </article>
+
+      <!-- CARD 3 large -->
+      <article x-intersect="$el.classList.add('show')" class="card-appear md:col-span-2 lg:col-span-1 relative rounded-3xl border border-white/10 bg-white/5 glass shadow-glass overflow-hidden">
+        <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1400&auto=format&fit=crop"
+             alt="E-commerce Django" class="h-48 w-full object-cover opacity-80" />
+        <div class="p-5">
+          <h3 class="text-lg font-semibold">Mini e-commerce “e-Market”</h3>
+          <p class="text-white/70 text-sm mt-1">Auth sociale (Google), panier, paiements intégrés, envoi des factures par mail & WhatsApp.</p>
+          <div class="mt-4 flex items-center gap-2 text-xs">
+            <span class="px-2 py-1 rounded-full bg-neon-500/20 border border-white/10">Django</span>
+            <span class="px-2 py-1 rounded-full bg-white/10 border border-white/10">Allauth</span>
+            <span class="px-2 py-1 rounded-full bg-white/10 border border-white/10">Tailwind</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- CARD 4 wide (hero-like, wifi panel from wireframe) -->
+      <article x-intersect="$el.classList.add('show')" class="card-appear md:col-span-2 lg:col-span-3 relative rounded-3xl border border-white/10 bg-neon-800/40 glass shadow-glass overflow-hidden">
+        <div class="p-6 md:p-10 grid md:grid-cols-3 gap-6 items-center">
+          <div class="md:col-span-2">
+            <h3 class="text-2xl font-bold">Open-source & Communauté</h3>
+            <p class="text-white/80 mt-2">Contribution régulière à <b>TwinFlex</b> (UI & docs), participation aux issues, revues de PR et packaging Linux.</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span class="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs">Contribution</span>
+              <span class="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs">Docs</span>
+              <span class="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs">CI/CD</span>
+            </div>
+          </div>
+          <div class="md:col-span-1">
+            <div class="rounded-2xl bg-black/50 p-6 border border-white/10 flex items-center justify-center">
+              <svg class="w-24 h-24 text-neon-400 animate-float" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 3C7 3 2.73 5.11 0 8.5l2 2C4.27 8.12 7.92 6 12 6s7.73 2.12 10 4.5l2-2C21.27 5.11 17 3 12 3zm0 6c-4 0-7.27 1.61-9.33 3.91L4 15c1.53-1.76 4.62-3 8-3s6.47 1.24 8 3l1.33-2.09C19.27 10.61 16 9 12 9zm0 6c-2.67 0-5.05.88-6.66 2.34L8 21c1.05-.65 2.5-1 4-1s2.95.35 4 1l2.66-3.66C17.05 15.88 14.67 15 12 15z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- SKILLS / STACK -->
+  <section id="skills" class="mx-auto max-w-7xl px-4 md:px-6 py-10 md:py-16">
+    <div class="grid lg:grid-cols-3 gap-8">
+      <div x-intersect="$el.classList.add('show')" class="card-appear rounded-3xl glass bg-white/5 border border-white/10 p-6 shadow-glass">
+        <h3 class="text-xl font-bold mb-4">Stack principal</h3>
+        <ul class="space-y-3 text-white/85">
+          <li class="flex items-center gap-3"><span class="h-2.5 w-2.5 rounded-full bg-neon-400"></span>Python, Django, DRF</li>
+          <li class="flex items-center gap-3"><span class="h-2.5 w-2.5 rounded-full bg-neon-400"></span>HTML5, CSS3, Tailwind</li>
+          <li class="flex items-center gap-3"><span class="h-2.5 w-2.5 rounded-full bg-neon-400"></span>JavaScript, Alpine.js</li>
+          <li class="flex items-center gap-3"><span class="h-2.5 w-2.5 rounded-full bg-neon-400"></span>PostgreSQL, SQLite</li>
+        </ul>
+      </div>
+
+      <div x-intersect="$el.classList.add('show')" class="card-appear rounded-3xl glass bg-white/5 border border-white/10 p-6 shadow-glass">
+        <h3 class="text-xl font-bold mb-4">DevOps & OS</h3>
+        <ul class="space-y-3 text-white/85">
+          <li class="flex items-center gap-3"><span class="h-2.5 w-2.5 rounded-full bg-cyan-300"></span>Linux (Arch/Ubuntu), macOS</li>
+          <li class="flex items-center gap-3"><span class="h-2.5 w-2.5 rounded-full bg-cyan-300"></span>Git, GitHub, CI/CD</li>
+          <li class="flex items-center gap-3"><span class="h-2.5 w-2.5 rounded-full bg-cyan-300"></span>NGINX/Apache, Docker (bases)</li>
+          <li class="flex items-center gap-3"><span class="h-2.5 w-2.5 rounded-full bg-cyan-300"></span>Tests & qualité (pytest)</li>
+        </ul>
+      </div>
+
+      <div x-intersect="$el.classList.add('show')" class="card-appear rounded-3xl glass bg-white/5 border border-white/10 p-6 shadow-glass">
+        <h3 class="text-xl font-bold mb-4">Soft skills</h3>
+        <ul class="space-y-3 text-white/85">
+          <li>Curieux & autodidacte</li>
+          <li>Esprit open-source & documentation</li>
+          <li>Orientation UX & performance</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPERIENCE / CONTRIBUTIONS -->
+  <section id="xp" class="mx-auto max-w-7xl px-4 md:px-6 pb-16">
+    <div class="rounded-3xl glass bg-white/5 border border-white/10 p-6 md:p-10 shadow-glass">
+      <div class="grid md:grid-cols-2 gap-8">
+        <div x-intersect="$el.classList.add('show')" class="card-appear">
+          <h3 class="text-2xl font-bold">Contributions TwinFlex</h3>
+          <p class="text-white/80 mt-2">Amélioration des composants UI, corrections de bugs, rédaction de guides et exemples Tailwind/Alpine.</p>
+          <ul class="mt-4 space-y-2 text-white/80 list-disc list-inside">
+            <li>PRs fusionnées : composants & docs</li>
+            <li>Revue de code, support communautaire</li>
+            <li>CI : tests et lints</li>
+          </ul>
+        </div>
+        <div x-intersect="$el.classList.add('show')" class="card-appear">
+          <img class="rounded-2xl border border-white/10"
+               src="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1400&auto=format&fit=crop"
+               alt="Open-source vibes" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="mx-auto max-w-7xl px-4 md:px-6 pb-16">
+    <div x-intersect="$el.classList.add('show')" class="card-appear relative overflow-hidden rounded-3xl border border-white/10 glass bg-gradient-to-br from-neon-900/40 to-black/50 shadow-glass p-8 md:p-12">
+      <div class="max-w-2xl">
+        <h3 class="text-2xl md:text-3xl font-bold">Un besoin Django / une UI Tailwind rapide ?</h3>
+        <p class="text-white/80 mt-2">Je prends des missions freelance et des collaborations open-source.</p>
+        <a href="#contact" class="mt-6 inline-block btn-neon rounded-full px-6 py-3 bg-white/10 border border-white/10">Contactons-nous</a>
+      </div>
+      <svg class="absolute -right-6 -bottom-6 w-48 h-48 text-neon-400/20 animate-float" viewBox="0 0 24 24" fill="currentColor"><path d="M5 20h14a1 1 0 0 0 .96-1.27l-2.4-8.4-4.04 3.37a1 1 0 0 1-1.28 0L8.2 10.33l-3.1 8.4A1 1 0 0 0 6 20H5z"/></svg>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact" class="mx-auto max-w-7xl px-4 md:px-6 pb-20">
+    <div class="grid md:grid-cols-2 gap-10">
+      <div x-intersect="$el.classList.add('show')" class="card-appear">
+        <h3 class="text-2xl font-bold">Discutons 💬</h3>
+        <p class="text-white/80 mt-2">Décrivez votre projet, je réponds rapidement.</p>
+        <form class="mt-6 space-y-4">
+          <input class="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-neon-400/60" placeholder="Votre nom" />
+          <input type="email" class="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-neon-400/60" placeholder="Email" />
+          <textarea rows="5" class="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-neon-400/60" placeholder="Votre message"></textarea>
+          <button type="submit" class="btn-neon w-full rounded-xl px-6 py-3 bg-neon-500/20 hover:bg-neon-500/25 border border-white/10">Envoyer</button>
+        </form>
+      </div>
+      <div x-intersect="$el.classList.add('show')" class="card-appear">
+        <div class="rounded-3xl glass bg-white/5 border border-white/10 p-6 shadow-glass">
+          <h4 class="text-lg font-semibold">Infos</h4>
+          <ul class="mt-3 space-y-2 text-white/80">
+            <li>📍 Brazzaville, CG</li>
+            <li>🐙 GitHub: <span class="text-white/90">Like2300</span></li>
+            <li>🧰 Stack: Django, Tailwind, Alpine, DRF</li>
+            <li>💻 OS: Linux & macOS (fan de Linux)</li>
+          </ul>
+          <img class="mt-6 rounded-2xl border border-white/10"
+               src="https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?q=80&w=1400&auto=format&fit=crop"
+               alt="Setup dev" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-white/10 bg-black/40 backdrop-blur-xl">
+    <div class="mx-auto max-w-7xl px-4 md:px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <p class="text-white/60 text-sm">© <span x-text="new Date().getFullYear()"></span> Elenga Omer Fils. Construit avec Tailwind & Alpine.</p>
+      <div class="flex items-center gap-3">
+        <a href="#home" class="rounded-full px-3 py-1 bg-white/10 border border-white/10">Haut ↑</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Store Alpine pour anims simples -->
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.store('anim', {
+        init() {
+          // révélation douce des .card-appear via IntersectionObserver (fallback si plugin non chargé)
+          const els = document.querySelectorAll('.card-appear');
+          const show = el => el.classList.add('show');
+          if ('IntersectionObserver' in window) {
+            const io = new IntersectionObserver((entries) => {
+              entries.forEach(e => { if (e.isIntersecting) { show(e.target); io.unobserve(e.target); } });
+            }, { threshold: 0.1 });
+            els.forEach(el => io.observe(el));
+          } else { els.forEach(show); }
+        }
+      })
+    })
+  </script>
+</body>
+</html>
