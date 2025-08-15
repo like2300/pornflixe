@@ -42,10 +42,7 @@ INSTALLED_APPS = [
     'paypal.standard.ipn'
 ]
 
-
-
-
-
+ 
 # === MIDDLEWARE ===
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -57,8 +54,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
-    'core.middleware.SubscriptionMiddleware',
-    
+    'core.middleware.SubscriptionMiddleware', 
 ]
 
 # Utilisez des workers asynchrones
@@ -149,7 +145,8 @@ CSRF_TRUSTED_ORIGINS = config(
 
 # settings.py (en production)
  
- 
+
+# === Cloudflare R2 === 
 # === Cloudflare R2 Configuration ===
 if not DEBUG:
     # Configuration de base
@@ -157,7 +154,7 @@ if not DEBUG:
     AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
     AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')  # Format: https://<account-id>.r2.cloudflarestorage.com
-    AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN')  # Format: pub-xxxx.r2.dev
+    AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN').replace('https://', '')  # Retire le https:// du domaine
     
     # Paramètres critiques
     AWS_S3_REGION_NAME = 'auto'
@@ -172,12 +169,16 @@ if not DEBUG:
     DEFAULT_FILE_STORAGE = 'core.storage.MediaStorage'
     STATICFILES_STORAGE = 'core.storage.StaticStorage'
     
-    # URLs finales
+    # URLs finales - IMPORTANT: format correct sans double https://
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
     STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
     
     # Désactive WhiteNoise en production
-    del MIDDLEWARE[MIDDLEWARE.index('whitenoise.middleware.WhiteNoiseMiddleware')]
+    MIDDLEWARE.remove('whitenoise.middleware.WhiteNoiseMiddleware')
+    
+    # Force HTTPS pour les assets
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
 else:
     # Configuration de développement
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
