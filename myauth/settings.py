@@ -1,4 +1,3 @@
- 
 from pathlib import Path
 import os
 from decouple import config, Csv
@@ -13,7 +12,6 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS =  ['*']
 SITE_ID = 1
 
- 
 
 # === APPLICATIONS ===
 INSTALLED_APPS = [
@@ -42,7 +40,7 @@ INSTALLED_APPS = [
     'paypal.standard.ipn'
 ]
 
- 
+
 # === MIDDLEWARE ===
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -84,6 +82,7 @@ TEMPLATES = [
     },
 ]
 
+
 # === AUTHENTICATION BACKENDS ===
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
@@ -92,7 +91,7 @@ AUTHENTICATION_BACKENDS = [
 # settings.py
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
- 
+
 # === DJANGO ALLAUTH SETTINGS ===  
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
@@ -101,7 +100,7 @@ ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 LOGIN_REDIRECT_URL = '/home'
 ACCOUNT_LOGOUT_REDIRECT_URL = '/accounts/login/'
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if not DEBUG else 'http'
- 
+
 
 # === EMAIL CONFIG ===
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
@@ -124,10 +123,53 @@ DATABASES = {
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Configuration du stockage
+USE_R2_IN_DEBUG = config('USE_R2_IN_DEBUG', default=False, cast=bool)
+
+if USE_R2_IN_DEBUG or not DEBUG:
+    print("🔧 Configuration R2 activée")
+    # Configuration pour R2 (utilisée en production ou si USE_R2_IN_DEBUG est True)
+    DEFAULT_FILE_STORAGE = 'core.storage.MediaStorage'
+    STATICFILES_STORAGE = 'core.storage.StaticStorage'
+    
+    # Configuration de base R2
+    AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
+    AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
+    AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN').replace('https://', '')
+    
+    # Paramètres critiques pour R2
+    AWS_S3_REGION_NAME = 'auto'
+    AWS_DEFAULT_ACL = 'public-read'
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_OBJECT_PARAMETERS = {
+        'ACL': 'public-read',
+        'CacheControl': 'max-age=31536000',
+    }
+    
+    # Paramètres spécifiques pour R2
+    AWS_S3_ADDRESSING_STYLE = 'virtual'
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_S3_SECURE_URLS = True
+    AWS_S3_USE_SSL = True
+    
+    # URLs finales pour R2
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+    STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+else:
+    # Configuration pour le développement local (sans R2)
+    print("🔧 Configuration de développement local (WhiteNoise) activée")
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    STATIC_URL = '/static/'
 
 # === SECURITY (Production) ===
 if not DEBUG:
@@ -141,54 +183,6 @@ CSRF_TRUSTED_ORIGINS = config(
     default='http://localhost:8000,http://127.0.0.1:8000',
     cast=Csv()
 )
-
-
-# settings.py (en production)
- 
-
-# === Cloudflare R2 === 
-# === Cloudflare R2 Configuration ===
-if not DEBUG:
-    # Configuration de base
-    AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
-    AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')  # Format: https://<account-id>.r2.cloudflarestorage.com
-    AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN').replace('https://', '')  # Retire le https:// du domaine
-    
-    # Paramètres critiques
-    AWS_S3_REGION_NAME = 'auto'
-    AWS_DEFAULT_ACL = 'public-read'
-    AWS_QUERYSTRING_AUTH = False
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_S3_OBJECT_PARAMETERS = {
-        'CacheControl': 'max-age=31536000',  # Cache de 1 an
-    }
-
-    # Configuration du stockage
-    DEFAULT_FILE_STORAGE = 'core.storage.MediaStorage'
-    STATICFILES_STORAGE = 'core.storage.StaticStorage'
-    
-    # URLs finales - IMPORTANT: format correct sans double https://
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
-    STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
-    
-    # Désactive WhiteNoise en production
-    MIDDLEWARE.remove('whitenoise.middleware.WhiteNoiseMiddleware')
-    
-    # Force HTTPS pour les assets
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_SSL_REDIRECT = True
-else:
-    # Configuration de développement
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
-
-
-if DEBUG:
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID')
@@ -227,7 +221,6 @@ SOCIALACCOUNT_STORE_TOKENS = True
 
 
 SOCIALACCOUNT_ADAPTER = 'core.adapters.CustomSocialAccountAdapter'
-
 
 
 LOGGING = {

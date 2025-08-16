@@ -16,21 +16,25 @@ def test_r2_connection():
     
     # Vérifier la configuration
     print(f"DEBUG: {settings.DEBUG}")
+    print(f"USE_R2_IN_DEBUG: {getattr(settings, 'USE_R2_IN_DEBUG', False)}")
     print(f"DEFAULT_FILE_STORAGE: {getattr(settings, 'DEFAULT_FILE_STORAGE', 'Non défini')}")
     print(f"AWS_STORAGE_BUCKET_NAME: {getattr(settings, 'AWS_STORAGE_BUCKET_NAME', 'Non défini')}")
     print(f"AWS_S3_ENDPOINT_URL: {getattr(settings, 'AWS_S3_ENDPOINT_URL', 'Non défini')}")
     print(f"AWS_S3_CUSTOM_DOMAIN: {getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', 'Non défini')}")
     
-    if settings.DEBUG:
-        print("\n⚠️  Attention: L'application est en mode DEBUG. La configuration R2 n'est pas activée.")
-        print("Pour tester R2, définissez DEBUG=False dans votre fichier .env")
+    # Vérifier si R2 est activé (en DEBUG ou en production)
+    use_r2 = (not settings.DEBUG) or getattr(settings, 'USE_R2_IN_DEBUG', False)
+    
+    if not use_r2:
+        print("\n⚠️  Attention: La configuration R2 n'est pas activée.")
+        print("Pour tester R2 en local, définissez USE_R2_IN_DEBUG=True dans votre fichier .env")
         return
     
     try:
         # Test d'écriture d'un fichier
         print("\n📝 Test d'écriture d'un fichier...")
-        content = ContentFile("Test de connexion à Cloudflare R2")
-        filename = "test_r2_connection.txt"
+        content = ContentFile("Test de connexion à Cloudflare R2 - Test local")
+        filename = "test_r2_local.txt"
         path = default_storage.save(filename, content)
         print(f"✅ Fichier enregistré: {path}")
         
@@ -47,12 +51,22 @@ def test_r2_connection():
         url = default_storage.url(path)
         print(f"✅ URL générée: {url}")
         
+        # Vérification des paramètres de l'URL
+        if 'pub-' in url and '.r2.dev' in url:
+            print("✅ Format d'URL R2 correct")
+        else:
+            print("⚠️  Format d'URL R2 peut-être incorrect")
+        
         # Nettoyage
         print("\n🧹 Nettoyage...")
         default_storage.delete(path)
         print("✅ Fichier supprimé")
         
         print("\n🎉 Tous les tests ont réussi!")
+        print("\n🔧 Prochaines étapes:")
+        print("1. Exécutez 'python manage.py collectstatic --noinput' pour uploader les fichiers statiques")
+        print("2. Vérifiez dans l'interface R2 que les fichiers sont présents")
+        print("3. Redémarrez votre serveur Django pour que les changements prennent effet")
         
     except Exception as e:
         print(f"❌ Erreur lors du test: {e}")
