@@ -140,6 +140,10 @@ else:
     # --- PRODUCTION (CLOUDFLARE R2) CONFIGURATION ---
     print("🚀 Running in PRODUCTION mode. Using Cloudflare R2 storage.")
 
+    # STATIC_ROOT is still needed for the collectstatic command to run.
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+
     # R2 Credentials from .env
     AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
