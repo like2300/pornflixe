@@ -151,6 +151,14 @@ else:
     AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
     AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN').replace('https://', '').replace('http://', '')
 
+    # django-storages settings for R2
+    AWS_S3_REGION_NAME = 'auto'
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = 'public-read'
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_VERIFY = True
+
     # Storage Classes
     DEFAULT_FILE_STORAGE = 'core.storage.MediaStorage'
     STATICFILES_STORAGE = 'core.storage.StaticStorage'
