@@ -144,7 +144,8 @@ else:
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
-    # R2 Credentials from .env
+    # Map Cloudflare R2 credentials to the variable names that django-storages expects.
+    # The library uses 'AWS_' prefixes by default, even for other S3-compatible services.
     AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
