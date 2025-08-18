@@ -161,8 +161,8 @@ else:
     AWS_S3_VERIFY = True
 
     # Storage Classes
-    DEFAULT_FILE_STORAGE = 'core.storage.MediaStorage'
-    STATICFILES_STORAGE = 'core.storage.StaticStorage'
+    DEFAULT_FILE_STORAGE = 'core.storage.R2MediaStorage'
+    STATICFILES_STORAGE = 'core.storage.R2StaticStorage'
 
     # URLs for templates
     STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
