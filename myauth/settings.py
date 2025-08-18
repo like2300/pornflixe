@@ -120,56 +120,47 @@ DATABASES = {
 }
 
 # === STATIC & MEDIA FILES ===
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+if DEBUG:
+    # --- LOCAL DEVELOPMENT CONFIGURATION ---
+    print("🔧 Running in DEBUG mode. Using local file storage.")
 
-# Configuration du stockage
-USE_R2_IN_DEBUG = config('USE_R2_IN_DEBUG', default=False, cast=bool)
+    # Static files (CSS, JavaScript, Images)
+    STATIC_URL = '/static/'
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-if USE_R2_IN_DEBUG or not DEBUG:
-    print("🔧 Configuration R2 activée")
-    # Configuration pour R2 (utilisée en production ou si USE_R2_IN_DEBUG est True)
-    DEFAULT_FILE_STORAGE = 'core.storage.MediaStorage'
-    STATICFILES_STORAGE = 'core.storage.StaticStorage'
-    
-    # Configuration de base R2
+    # Media files (User-uploaded content)
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+
+else:
+    # --- PRODUCTION (CLOUDFLARE R2) CONFIGURATION ---
+    print("🚀 Running in PRODUCTION mode. Using Cloudflare R2 storage.")
+
+    # R2 Credentials from .env
     AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
     AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
-    AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN').replace('https://', '')
-    
-    # Paramètres critiques pour R2
+    AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN') # Public URL for accessing files
+
+    # django-storages settings for R2
     AWS_S3_REGION_NAME = 'auto'
-    AWS_DEFAULT_ACL = 'public-read'
-    AWS_QUERYSTRING_AUTH = False
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_S3_OBJECT_PARAMETERS = {
-        'ACL': 'public-read',
-        'CacheControl': 'max-age=31536000',
-    }
-    
-    # Paramètres spécifiques pour R2
-    AWS_S3_ADDRESSING_STYLE = 'virtual'
     AWS_S3_SIGNATURE_VERSION = 's3v4'
-    AWS_S3_SECURE_URLS = True
-    AWS_S3_USE_SSL = True
-    
-    # URLs finales pour R2
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = 'public-read'
+    AWS_QUERYSTRING_AUTH = False # R2 public buckets don't need signed URLs
+
+    # Storage Classes
+    DEFAULT_FILE_STORAGE = 'core.storage.MediaStorage'
+    STATICFILES_STORAGE = 'core.storage.StaticStorage'
+
+    # URLs for templates
     STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
-else:
-    # Configuration pour le développement local (sans R2)
-    print("🔧 Configuration de développement local (WhiteNoise) activée")
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-    STATIC_URL = '/static/'
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
 
 # === SECURITY (Production) ===
 if not DEBUG:
