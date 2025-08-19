@@ -51,15 +51,19 @@ def configure_r2_cors():
         )
 
         # Définition de la politique CORS
-        # 'AllowedOrigins': ['*'] est acceptable pour les contenus publics.
-        # Pour plus de sécurité, vous pourriez le remplacer par l'URL de votre site,
-        # par exemple : 'AllowedOrigins': ['https://votre-domaine.com']
+        # Pour plus de sécurité, nous listons explicitement les domaines autorisés.
+        # On inclut le domaine local pour les tests et les domaines de production.
         cors_configuration = {
             'CORSRules': [
                 {
                     'AllowedHeaders': ['*'],
                     'AllowedMethods': ['GET', 'HEAD'],
-                    'AllowedOrigins': ['*'],
+                    'AllowedOrigins': [
+                        'http://localhost:8000',
+                        'http://127.0.0.1:8000',
+                        'https://pornflixe.onrender.com',
+                        'https://pornflixe-production.up.railway.app'
+                    ],
                     'MaxAgeSeconds': 3600,
                 }
             ]

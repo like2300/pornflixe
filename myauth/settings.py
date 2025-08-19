@@ -57,9 +57,9 @@ MIDDLEWARE = [
 
 # Utilisez des workers asynchrones
 # Dans settings.py
-FILE_UPLOAD_HANDLERS = [
-    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
-]
+# FILE_UPLOAD_HANDLERS = [
+#     'django.core.files.uploadhandler.TemporaryFileUploadHandler',
+# ]
 
 # === URLS & WSGI ===
 ROOT_URLCONF = 'myauth.urls'
@@ -121,52 +121,41 @@ DATABASES = {
 
 # === STATIC & MEDIA FILES ===
 
-if DEBUG:
-    # --- LOCAL DEVELOPMENT CONFIGURATION ---
-    print("🔧 Running in DEBUG mode. Using local file storage.")
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-    # Static files (CSS, JavaScript, Images)
-    STATIC_URL = '/static/'
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Media files (User uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-    # Media files (User-uploaded content)
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+# This variable allows you to force the use of R2 even in DEBUG mode.
+# Set USE_R2_IN_DEBUG="True" in your .env file to test R2 locally.
 
-else:
-    # --- PRODUCTION (CLOUDFLARE R2) CONFIGURATION ---
-    print("🚀 Running in PRODUCTION mode. Using Cloudflare R2 storage.")
+# === STORAGE CONFIGURATION ===
+USE_R2_IN_DEBUG = config('USE_R2_IN_DEBUG', default=False, cast=bool)
+IS_PRODUCTION_STORAGE = not DEBUG or USE_R2_IN_DEBUG
 
-    # STATIC_ROOT is still needed for the collectstatic command to run.
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-
-    # Map Cloudflare R2 credentials to the variable names that django-storages expects.
-    # The library uses 'AWS_' prefixes by default, even for other S3-compatible services.
+if IS_PRODUCTION_STORAGE:
+    # Cloudflare R2 Configuration
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
     AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
-    AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN').replace('https://', '').replace('http://', '')
-
-    # django-storages settings for R2
+    AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN')
+    AWS_DEFAULT_ACL = 'public-read'  # Ou 'private' si vous voulez des fichiers privés
+    AWS_QUERYSTRING_AUTH = False  # Pour éviter les URLs signées
+    AWS_S3_FILE_OVERWRITE = False  # Empêche l'écrasement des fichiers existants
+    
+    # Important pour R2
     AWS_S3_REGION_NAME = 'auto'
     AWS_S3_SIGNATURE_VERSION = 's3v4'
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_DEFAULT_ACL = 'public-read'
-    AWS_QUERYSTRING_AUTH = False
-    AWS_S3_VERIFY = True
+else:
+    # Local storage
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 
-    # Storage Classes
-    DEFAULT_FILE_STORAGE = 'core.storage.R2MediaStorage'
-    STATICFILES_STORAGE = 'core.storage.R2StaticStorage'
 
-    # URLs for templates
-    STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
 
 # === SECURITY (Production) ===
 if not DEBUG:
@@ -245,6 +234,7 @@ LOGGING = {
         'django': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
+            'propagate': True,
         },
         'allauth': {
             'handlers': ['console', 'file'],
@@ -254,6 +244,19 @@ LOGGING = {
         'core': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
+            'propagate': True,
+        },
+        # --- AJOUT POUR LE DEBUG DE R2 ---
+        # Ces loggers vont afficher les détails de bas niveau de la connexion à R2
+        'boto3': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'botocore': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
         },
     },
 }

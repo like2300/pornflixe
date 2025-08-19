@@ -9,7 +9,7 @@ class R2Storage(S3Boto3Storage):
     # Force la configuration S3 pour être compatible avec R2
     config = Config(s3={'addressing_style': 'virtual'})
 
-class StaticStorage(R2Storage):
+class R2StaticStorage(R2Storage):
     """Stockage pour les fichiers statiques sur R2."""
     location = 'static'
     default_acl = 'public-read'
@@ -17,7 +17,7 @@ class StaticStorage(R2Storage):
         'CacheControl': 'max-age=31536000',  # Cache pour 1 an
     }
 
-class MediaStorage(R2Storage):
+class R2MediaStorage(R2Storage):
     """Stockage pour les fichiers médias sur R2."""
     location = 'media'
     default_acl = 'public-read'

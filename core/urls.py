@@ -49,8 +49,3 @@ urlpatterns = [
     path('support/contact/', contact_support, name='contact_support'),
     path('config/', admin_dashboard, name='admin_dashboard'),
 ]
-
-# ================= Fichiers Statiques (Développement) ===============================
-if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
