@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 from decouple import config, Csv
+from storages.backends.s3boto3 import S3Boto3Storage
 
 # === BASE DIRECTORIES ===
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -11,7 +12,7 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = [
     'pornflixe-production.up.railway.app',
-    '.railway.app',  # This allows all railway subdomains
+    '.railway.app',
     'localhost',
     '127.0.0.1',
 ]
@@ -19,9 +20,7 @@ SITE_ID = 1
 
 # === APPLICATIONS ===
 INSTALLED_APPS = [
-    # UI theme
-    'unfold', 
-    # Django core
+    'unfold',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -29,19 +28,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
-
-    # Local apps
     'core.apps.CoreConfig',
-
-    # Third-party
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'widget_tweaks',
-    'storages',  # Important pour Cloudflare R2
-
-    # paypal
+    'storages',
     'paypal.standard.ipn'
 ]
 
@@ -55,10 +48,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
-    'core.middleware.SubscriptionMiddleware', 
+    'core.middleware.SubscriptionMiddleware',
 ]
 
-# Utilisez des workers asynchrones
 FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.TemporaryFileUploadHandler',
 ]
@@ -118,27 +110,45 @@ DATABASES = {
     }
 }
 
-# === STATIC & MEDIA FILES (TOUJOURS DÉFINIS MÊME AVEC R2) ===
-# Ces paramètres sont requis par Django même si vous utilisez R2
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # IMPORTANT: Définir STATIC_ROOT
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+# Configuration Cloudflare R2
+AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
+AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
+AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN', default='').replace('https://', '').replace('http://', '')
+AWS_S3_REGION_NAME = 'auto'  # Important pour R2
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Défini pour la cohérence
+# Configuration du stockage S3 pour les fichiers média
+class MediaStorage(S3Boto3Storage):
+    location = 'media'
+    file_overwrite = False
 
+# Configuration du stockage S3 pour les fichiers statiques
+class StaticStorage(S3Boto3Storage):
+    location = 'static'
+    file_overwrite = False
 
+# Configuration des stockages
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "location": "media",
+            "file_overwrite": False,
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "location": "static",
+            "file_overwrite": False,
+        },
+    },
+}
 
-# Cloudflare R2 S3 Storage Settings 
-AWS_S3_ACCESS_KEY_ID =  config('R2_ACCESS_KEY_ID')
-AWS_S3_SECRET_ACCESS_KEY =  config('R2_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME =  config('R2_BUCKET_NAME')
-AWS_S3_ENDPOINT_URL =  config('R2_ENDPOINT_URL')
-AWS_S3_CUSTOM_DOMAIN =  config('R2_CDN_DOMAIN', default='').replace('https://', '').replace('http://', '')
-
-# Set default storage backend (Django 4.2+) 
-STORAGES = {  "default": {  "BACKEND": "storages.backends.s3.S3Storage",  },  "staticfiles": {  "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",  }, }
-
+# URLs pour les fichiers statiques et média
+STATIC_URL = f'{AWS_S3_CUSTOM_DOMAIN}/static/' if AWS_S3_CUSTOM_DOMAIN else f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/static/'
+MEDIA_URL = f'{AWS_S3_CUSTOM_DOMAIN}/media/' if AWS_S3_CUSTOM_DOMAIN else f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/media/'
 
 # === SECURITY (Production) ===
 if not DEBUG:
