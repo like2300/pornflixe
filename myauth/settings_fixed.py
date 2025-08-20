@@ -127,9 +127,39 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Configuration du stockage WhiteNoise (par défaut en développement)
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+# === STORAGE CONFIGURATION (R2 ALWAYS ON) ===
+# Cette configuration force l'utilisation de Cloudflare R2.
+
+# Configuration de base
+AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
+AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
+AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN').replace('https://', '')
+
+# Paramètres critiques pour R2
+AWS_S3_REGION_NAME = 'auto'
+AWS_S3_ADDRESSING_STYLE = 'virtual'  # Essentiel pour R2
+AWS_DEFAULT_ACL = 'public-read'
+AWS_QUERYSTRING_AUTH = False
+AWS_S3_FILE_OVERWRITE = False
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=31536000',
+}
+
+# Configuration du stockage standard (plus fiable)
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# URLs finales pointant vers le CDN de R2
+# Le chemin est maintenant géré par la configuration du stockage lui-même
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+
+# On s'assure que WhiteNoise n'interfère pas
+if 'whitenoise.middleware.WhiteNoiseMiddleware' in MIDDLEWARE:
+    MIDDLEWARE.remove('whitenoise.middleware.WhiteNoiseMiddleware')
+
 
 # === SECURITY (Production) ===
 if not DEBUG:
@@ -137,50 +167,6 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-CSRF_TRUSTED_ORIGINS = config(
-    'CSRF_TRUSTED_ORIGINS',
-    default='http://localhost:8000,http://127.0.0.1:8000',
-    cast=Csv()
-)
-
-
-# settings.py (en production)
-
-
-# === Cloudflare R2 === 
-# === Cloudflare R2 Configuration ===
-if not DEBUG:
-    # Configuration de base
-    AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
-    AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')  # Format: https://<account-id>.r2.cloudflarestorage.com
-    AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN').replace('https://', '')  # Retire le https:// du domaine
-    
-    # Paramètres critiques
-    AWS_S3_REGION_NAME = 'auto'
-    AWS_DEFAULT_ACL = 'public-read'
-    AWS_QUERYSTRING_AUTH = False
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_S3_OBJECT_PARAMETERS = {
-        'CacheControl': 'max-age=31536000',  # Cache de 1 an
-    }
-
-    # Configuration du stockage
-    DEFAULT_FILE_STORAGE = 'core.storage.MediaStorage'
-    STATICFILES_STORAGE = 'core.storage.StaticStorage'
-    
-    # URLs finales - IMPORTANT: format correct sans double https://
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
-    STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
-    
-    # Désactive WhiteNoise en production
-    MIDDLEWARE.remove('whitenoise.middleware.WhiteNoiseMiddleware')
-    
-    # Force HTTPS pour les assets
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_SSL_REDIRECT = True
 
 
 PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID')
@@ -226,7 +212,7 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
     },
@@ -246,15 +232,24 @@ LOGGING = {
         'django': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
-        },
-        'allauth': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': False,
+            'propagate': True,
         },
         'core': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
+            'propagate': True,
+        },
+        # --- LOGS DE DÉBOGAGE POUR R2 ---
+        # Ces loggers vont afficher les détails de bas niveau de la connexion à R2
+        'boto3': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'botocore': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
         },
     },
 }

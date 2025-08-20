@@ -9,9 +9,8 @@ TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
 # === SECURITY ===
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS =  ['*']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 SITE_ID = 1
-
 
 # === APPLICATIONS ===
 INSTALLED_APPS = [
@@ -35,16 +34,15 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'widget_tweaks',
+    'storages',  # Important pour Cloudflare R2
 
     # paypal
     'paypal.standard.ipn'
 ]
 
-
 # === MIDDLEWARE ===
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -56,15 +54,14 @@ MIDDLEWARE = [
 ]
 
 # Utilisez des workers asynchrones
-# Dans settings.py
-# FILE_UPLOAD_HANDLERS = [
-#     'django.core.files.uploadhandler.TemporaryFileUploadHandler',
-# ]
+FILE_UPLOAD_HANDLERS = [
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
+]
 
 # === URLS & WSGI ===
 ROOT_URLCONF = 'myauth.urls'
-
 WSGI_APPLICATION = "myauth.wsgi.application"
+
 # === TEMPLATES ===
 TEMPLATES = [
     {
@@ -82,15 +79,13 @@ TEMPLATES = [
     },
 ]
 
-
 # === AUTHENTICATION BACKENDS ===
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
-# settings.py
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # === DJANGO ALLAUTH SETTINGS ===  
 ACCOUNT_LOGIN_METHODS = {"email"}
@@ -100,7 +95,6 @@ ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 LOGIN_REDIRECT_URL = '/home'
 ACCOUNT_LOGOUT_REDIRECT_URL = '/accounts/login/'
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if not DEBUG else 'http'
-
 
 # === EMAIL CONFIG ===
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
@@ -119,58 +113,50 @@ DATABASES = {
     }
 }
 
-# === STATIC & MEDIA FILES ===
+# === CLOUDFLARE R2 CONFIGURATION ===
+USE_R2 = config('USE_R2', default=True, cast=bool)
 
-# Static files (CSS, JavaScript, Images)
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# Media files (User uploads)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# This variable allows you to force the use of R2 even in DEBUG mode.
-# Set USE_R2_IN_DEBUG="True" in your .env file to test R2 locally.
-
-# === STORAGE CONFIGURATION ===
-USE_R2_IN_DEBUG = config('USE_R2_IN_DEBUG', default=False, cast=bool)
-IS_PRODUCTION_STORAGE = not DEBUG or USE_R2_IN_DEBUG
-
-if IS_PRODUCTION_STORAGE:
-    # Cloudflare R2 Configuration
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+if USE_R2:
+    # Configuration R2
     AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
     AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
     
-    # Important: Configuration spécifique R2
-    AWS_S3_REGION_NAME = 'auto'  # Obligatoire pour R2
-    AWS_S3_ADDRESSING_STYLE = 'virtual'  # Important pour R2
-    AWS_S3_SIGNATURE_VERSION = 's4'  # Version de signature
-    
-    # Option CDN
-    R2_CDN_DOMAIN = config('R2_CDN_DOMAIN', default=None)
-    if R2_CDN_DOMAIN:
-        AWS_S3_CUSTOM_DOMAIN = R2_CDN_DOMAIN
-    
-    AWS_DEFAULT_ACL = 'public-read'  # Recommandé pour R2
+    # Configuration spécifique à R2
+    AWS_S3_REGION_NAME = 'auto'
+    AWS_S3_ADDRESSING_STYLE = 'virtual'
+    AWS_DEFAULT_ACL = 'public-read'
     AWS_QUERYSTRING_AUTH = False
     AWS_S3_FILE_OVERWRITE = False
-    
-    # Optimisation des uploads
     AWS_S3_OBJECT_PARAMETERS = {
-        'CacheControl': 'max-age=86400',
+        'CacheControl': 'max-age=31536000',
     }
     
-    # Configuration du client S3
-    AWS_S3_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
-
+    # Configuration des stockages
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    
+    # Configuration des URLs
+    if config('R2_CDN_DOMAIN', default=None):
+        AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN').replace('https://', '')
+        MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+        STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+    else:
+        # Utilisation directe du endpoint R2 si aucun CDN n'est configuré
+        AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+        MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/media/'
+        STATIC_URL = f'{AWS_S3_ENDPOINT_URL}/static/'
 else:
-    # Local storage
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
-
-
+    # Configuration locale pour le développement
+    STATIC_URL = '/static/'
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    
+    # Ajouter WhiteNoise seulement en mode développement sans R2
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 # === SECURITY (Production) ===
 if not DEBUG:
@@ -179,24 +165,15 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-CSRF_TRUSTED_ORIGINS = config(
-    'CSRF_TRUSTED_ORIGINS',
-    default='http://localhost:8000,http://127.0.0.1:8000',
-    cast=Csv()
-)
-
-
+# === PAYPAL CONFIGURATION ===
 PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID')
 PAYPAL_SECRET = config('PAYPAL_SECRET')             
- 
-PAYPAL_ENV = config('PAYPAL_ENV', default='sandbox')  # Par défaut sandbox
-PAYPAL_TEST = config('PAYPAL_TEST', default=True, cast=bool)                 # False en prod
-PAYPAL_RECEIVER_EMAIL =  config('PAYPAL_RECEIVER_EMAIL', default='sb-chiak44231938@business.example.com')
+PAYPAL_ENV = config('PAYPAL_ENV', default='sandbox')
+PAYPAL_TEST = config('PAYPAL_TEST', default=True, cast=bool)
+PAYPAL_RECEIVER_EMAIL = config('PAYPAL_RECEIVER_EMAIL', default='sb-chiak44231938@business.example.com')
 SUPPORT_EMAIL = "support@tonsite.com"
-# === SOCIAL LOGIN (GOOGLE) ===
 
 # === SOCIAL LOGIN (GOOGLE) ===
-
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['profile', 'email'],
@@ -204,32 +181,29 @@ SOCIALACCOUNT_PROVIDERS = {
             'access_type': 'online',
             'prompt': 'select_account'
         },
-        'OAUTH_PKCE_ENABLED': True,  # Recommandé pour la sécurité
+        'OAUTH_PKCE_ENABLED': True,
         'APP': {
-            'client_id': config('CLIENT_ID'),  # Renommez pour plus de clarté
+            'client_id': config('CLIENT_ID'),
             'secret': config('CLIENT_SECRET'),
             'key': ''
         }
     }
 }
 
-
 # Configuration Allauth supplémentaire
 ACCOUNT_EMAIL_REQUIRED = True
 SOCIALACCOUNT_EMAIL_REQUIRED = True
 SOCIALACCOUNT_QUERY_EMAIL = True
 SOCIALACCOUNT_STORE_TOKENS = True
-
-
 SOCIALACCOUNT_ADAPTER = 'core.adapters.CustomSocialAccountAdapter'
 
-
+# === LOGGING CONFIGURATION ===
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
     },
@@ -251,35 +225,20 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
-        'allauth': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
         'core': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': True,
         },
-        # --- AJOUT POUR LE DEBUG DE R2 ---
-        # Ces loggers vont afficher les détails de bas niveau de la connexion à R2
         'boto3': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': True,
         },
         'botocore': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': True,
         },
     },
 }
-
-
-import logging
-logger = logging.getLogger(__name__)
-
-def google_login(request):
-    logger.info("Tentative de connexion Google initiée")
-    # Votre code existant

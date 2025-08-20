@@ -110,6 +110,6 @@ wsproto==1.2.0
 celery==5.4.0
 redis==5.0.3
 
-# Versions spécifiques pour la compatibilité du stockage S3/R2
-boto3==1.34.140
-django-storages==1.14.4
+# Versions mises à jour pour une meilleure compatibilité avec S3/R2
+boto3==1.34.142
+django-storages==1.14.6

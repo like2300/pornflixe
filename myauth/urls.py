@@ -29,7 +29,8 @@ urlpatterns = [
 
 
 
-# ================= Fichiers Statiques ===============================
-# Serve static and media files in both development and production
-urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# En production ou lors de l'utilisation d'un stockage externe comme R2,
+# le serveur web (Nginx, etc.) ou le service de stockage (R2) est responsable de servir les fichiers.
+# Ces lignes sont donc commentées pour permettre à R2 de prendre le relais.
+# urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+# urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
