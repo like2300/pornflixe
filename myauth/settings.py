@@ -117,6 +117,7 @@ AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
 AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
 AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN', default='').replace('https://', '').replace('http://', '')
 AWS_S3_REGION_NAME = 'auto'  # Important pour R2
+AWS_QUERYSTRING_AUTH = False 
 
 # Configuration du stockage S3 pour les fichiers média
 class MediaStorage(S3Boto3Storage):
