@@ -113,50 +113,27 @@ DATABASES = {
     }
 }
 
-# === CLOUDFLARE R2 CONFIGURATION ===
-USE_R2 = config('USE_R2', default=True, cast=bool)
+# === STATIC & MEDIA FILES (TOUJOURS DÉFINIS MÊME AVEC R2) ===
+# Ces paramètres sont requis par Django même si vous utilisez R2
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # IMPORTANT: Définir STATIC_ROOT
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
-if USE_R2:
-    # Configuration R2
-    AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
-    AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
-    
-    # Configuration spécifique à R2
-    AWS_S3_REGION_NAME = 'auto'
-    AWS_S3_ADDRESSING_STYLE = 'virtual'
-    AWS_DEFAULT_ACL = 'public-read'
-    AWS_QUERYSTRING_AUTH = False
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_S3_OBJECT_PARAMETERS = {
-        'CacheControl': 'max-age=31536000',
-    }
-    
-    # Configuration des stockages
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    
-    # Configuration des URLs
-    if config('R2_CDN_DOMAIN', default=None):
-        AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN').replace('https://', '')
-        MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
-        STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
-    else:
-        # Utilisation directe du endpoint R2 si aucun CDN n'est configuré
-        AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
-        MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/media/'
-        STATIC_URL = f'{AWS_S3_ENDPOINT_URL}/static/'
-else:
-    # Configuration locale pour le développement
-    STATIC_URL = '/static/'
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-    
-    # Ajouter WhiteNoise seulement en mode développement sans R2
-    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Défini pour la cohérence
+
+
+
+# Cloudflare R2 S3 Storage Settings 
+AWS_S3_ACCESS_KEY_ID =  config('R2_ACCESS_KEY_ID')
+AWS_S3_SECRET_ACCESS_KEY =  config('R2_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME =  config('R2_BUCKET_NAME')
+AWS_S3_ENDPOINT_URL =  config('R2_ENDPOINT_URL')
+AWS_S3_CUSTOM_DOMAIN =  config('R2_CDN_DOMAIN', default='').replace('https://', '').replace('http://', '')
+
+# Set default storage backend (Django 4.2+) 
+STORAGES = {  "default": {  "BACKEND": "storages.backends.s3.S3Storage",  },  "staticfiles": {  "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",  }, }
+
 
 # === SECURITY (Production) ===
 if not DEBUG:
@@ -171,7 +148,7 @@ PAYPAL_SECRET = config('PAYPAL_SECRET')
 PAYPAL_ENV = config('PAYPAL_ENV', default='sandbox')
 PAYPAL_TEST = config('PAYPAL_TEST', default=True, cast=bool)
 PAYPAL_RECEIVER_EMAIL = config('PAYPAL_RECEIVER_EMAIL', default='sb-chiak44231938@business.example.com')
-SUPPORT_EMAIL = "support@tonsite.com"
+SUPPORT_EMAIL = "support@pornflixe.com"
 
 # === SOCIAL LOGIN (GOOGLE) ===
 SOCIALACCOUNT_PROVIDERS = {
