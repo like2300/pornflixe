@@ -9,7 +9,12 @@ TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
 # === SECURITY ===
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+ALLOWED_HOSTS = [
+    'pornflixe-production.up.railway.app',
+    '.railway.app',  # This allows all railway subdomains
+    'localhost',
+    '127.0.0.1',
+]
 SITE_ID = 1
 
 # === APPLICATIONS ===
