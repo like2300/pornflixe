@@ -143,14 +143,29 @@ if IS_PRODUCTION_STORAGE:
     AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
     AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
-    AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN')
-    AWS_DEFAULT_ACL = 'public-read'  # Ou 'private' si vous voulez des fichiers privés
-    AWS_QUERYSTRING_AUTH = False  # Pour éviter les URLs signées
-    AWS_S3_FILE_OVERWRITE = False  # Empêche l'écrasement des fichiers existants
     
-    # Important pour R2
-    AWS_S3_REGION_NAME = 'auto'
-    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    # Important: Configuration spécifique R2
+    AWS_S3_REGION_NAME = 'auto'  # Obligatoire pour R2
+    AWS_S3_ADDRESSING_STYLE = 'virtual'  # Important pour R2
+    AWS_S3_SIGNATURE_VERSION = 's4'  # Version de signature
+    
+    # Option CDN
+    R2_CDN_DOMAIN = config('R2_CDN_DOMAIN', default=None)
+    if R2_CDN_DOMAIN:
+        AWS_S3_CUSTOM_DOMAIN = R2_CDN_DOMAIN
+    
+    AWS_DEFAULT_ACL = 'public-read'  # Recommandé pour R2
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_FILE_OVERWRITE = False
+    
+    # Optimisation des uploads
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',
+    }
+    
+    # Configuration du client S3
+    AWS_S3_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
+
 else:
     # Local storage
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
