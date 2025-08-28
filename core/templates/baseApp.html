@@ -8,6 +8,8 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"  rel="stylesheet">
+    <!-- CSS pour la navigation mobile -->
+    <link href="/static/css/mobile-nav.css" rel="stylesheet">
     <style type="text/tailwindcss">
                     @layer utilities {
                     .text-shadow {
@@ -209,11 +211,15 @@
 
 
 
+
         {% include "partials/_profile.html" %}
         
 
   
         {% block extra_js %}{% endblock extra_js %}
+        
+        <!-- JavaScript pour la navigation mobile -->
+        <script src="/static/js/mobile-nav.js"></script>
 
 </div>
  

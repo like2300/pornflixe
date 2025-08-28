@@ -1,236 +1,650 @@
-{% extends "baseApp.html" %}
+{% extends 'baseApp.html' %}
 
-{% block title %}Short Videos{% endblock %}
+{% block title %}Shorts{% endblock %}
 
 {% block content %}
+<div class="w-full h-screen relative overflow-hidden select-none bg-black">
+  <!-- Piste du carrousel -->
+  <div id="videoCarousel" class="flex h-full transition-transform duration-300 ease-out will-change-transform">
+    {% for video in object_list %}
+    <section class="w-full h-full flex-shrink-0 relative grid place-items-center" data-slide-index="{{ forloop.counter0 }}">
+      
+      <!-- Backdrop flouté -->
+      {% if video.cover_film %}
+        <div class="absolute inset-0 bg-cover bg-center blur-xl scale-110 opacity-30" style="background-image: url('{{ video.cover_film.url }}');"></div>
+      {% else %}
+        <div class="absolute inset-0 bg-black"></div>
+      {% endif %}
+
+      <!-- Cadre 9:16 centré façon TikTok -->
+      <div class="short-frame relative rounded-xl md:rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+        <!-- Vidéo principale -->
+        <video 
+          class="short-video" 
+          src="{{ video.video.url }}"
+          preload="metadata"
+          playsinline
+          muted
+          loop
+          data-title="{{ video.title|escapejs }}"
+          data-created="{{ video.get_time_ago }}"
+          data-video-id="{{ video.id }}"
+          data-likes="{{ video.favorites.count }}"
+          data-views="{{ video.views }}">
+        </video>
+
+        <!-- Overlay bas: titre + métas -->
+        <div class="pointer-events-none absolute inset-x-0 bottom-0 p-4 md:p-5 text-white">
+          <div class="bg-gradient-to-t from-black/80 to-transparent absolute inset-x-0 bottom-0 h-32 -z-10"></div>
+          <h2 class="text-base md:text-lg font-semibold drop-shadow-sm line-clamp-2">{{ video.title }}</h2>
+          {% if video.description %}
+          <p class="mt-1 text-xs text-white/80 line-clamp-2">{{ video.description|truncatewords:10 }}</p>
+          {% endif %}
+          <div class="mt-2 text-[10px] md:text-xs text-white/70 flex items-center gap-1 md:gap-2">
+            <span>{{ video.views }} vues</span>
+            <span>•</span>
+            <span>{{ video.get_time_ago }}</span>
+            <span id="fmt-{{ forloop.counter0 }}" class="ml-auto inline-flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+              <span class="tabular-nums">—</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Boutons flottants style TikTok (droite) -->
+      <div class="absolute right-3 md:right-4 bottom-24 md:bottom-32 flex flex-col items-center gap-4 md:gap-5 text-white">
+        <!-- Like button -->
+        <button class="action-btn like-btn" data-video-id="{{ video.id }}" title="J'aime">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+            <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.928-2.438 7.114-4.739 9.259a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.75.75 0 01-.666 0z" />
+          </svg> 
+        </button>
+        
+        <!-- Comment button -->
+        <button class="action-btn comment-btn" data-video-id="{{ video.id }}" title="Commentaires">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+            <path fill-rule="evenodd" d="M4.804 21.644A6.707 6.707 0 006 21.75a6.721 6.721 0 003.583-1.029c.774.182 1.584.279 2.417.279 5.322 0 9.75-3.97 9.75-9 0-5.03-4.428-9-9.75-9s-9.75 3.97-9.75 9c0 2.409 1.025 4.587 2.674 6.192.232.226.277.428.254.543a3.73 3.73 0 01-.814 1.686.75.75 0 00.44 1.223zM8.25 10.875a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25zM10.875 12a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0zm4.875-1.125a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25z" clip-rule="evenodd" />
+          </svg> 
+        </button>
+        
+        <!-- Share button -->
+        <button class="action-btn share-btn" data-video-id="{{ video.id }}" title="Partager">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+            <path fill-rule="evenodd" d="M15.75 4.5a3 3 0 11.825 2.066l-8.421 4.679a3.002 3.002 0 010 1.51l8.421 4.679a3 3 0 11-.729 1.31l-8.421-4.678a3 3 0 110-4.132l8.421-4.679a3 3 0 01-.096-.755z" clip-rule="evenodd" />
+          </svg> 
+        </button>
+        
+        <!-- Profile button -->
+        <div class="mt-2">
+          <div class="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+            {{ user.username|first|upper }}
+          </div>
+        </div>
+      </div>
+    </section>
+    {% empty %}
+    <div class="w-full h-full grid place-items-center text-gray-400">
+      <div class="text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+        <p class="text-lg">Aucune vidéo courte disponible</p>
+        <p class="text-sm mt-2">Revenez plus tard pour plus de contenu !</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Indicateurs de progression -->
+  <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-1">
+    {% for video in object_list %}
+      <div class="indicator w-2 h-2 rounded-full bg-white/30" data-index="{{ forloop.counter0 }}"></div>
+    {% endfor %}
+  </div>
+
+  <!-- Contrôles navigation -->
+  <button id="prevBtn" class="nav-btn left-3 md:left-5 opacity-0 hover:opacity-100 transition-opacity" aria-label="Vidéo précédente">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+    </svg>
+  </button>
+  <button id="nextBtn" class="nav-btn right-3 md:right-5 opacity-0 hover:opacity-100 transition-opacity" aria-label="Vidéo suivante">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
+  </button>
+</div>
+
+<!-- Modal de commentaires -->
+<div id="commentsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1000] hidden items-center justify-center p-4">
+  <div class="bg-[#0f0203] rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col">
+    <div class="p-4 border-b border-white/10 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-white">Commentaires</h3>
+      <button id="closeComments" class="text-white/70 hover:text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    
+    <div class="flex-1 overflow-y-auto p-4 space-y-4" id="commentsList">
+      <!-- Les commentaires seront chargés ici dynamiquement -->
+      <div class="text-center text-gray-400 py-8">
+        <p>Chargement des commentaires...</p>
+      </div>
+    </div>
+    
+    <div class="p-4 border-t border-white/10">
+      <div class="flex items-center space-x-2">
+        <input type="text" id="commentInput" placeholder="Ajouter un commentaire..." class="flex-1 bg-white/10 border border-white/20 rounded-full px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-pink-500">
+        <button id="sendComment" class="bg-pink-600 hover:bg-pink-700 text-white rounded-full px-4 py-2 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <style>
-  /* Reset & Fullscreen */
-  body, html {
-    margin: 0;
-    padding: 0;
+  /* Cadre 9:16 centré – style TikTok */
+  .short-frame {
+    /* Maintient 9:16, limite taille pour ne pas saturer l'écran */
+    aspect-ratio: 9 / 16;
+    height: min(90vh, 750px);
+    max-height: 90vh;
+    width: min(calc(90vh * 9 / 16), 92vw);
     background: #000;
-    color: white;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    height: 100vh;
-    overflow: hidden;
+  }
+  
+  /* Fallback aspect-ratio (vieux navigateurs): utilise un padding trick */
+  @supports not (aspect-ratio: 9 / 16) {
+    .short-frame { 
+      position: relative; 
+      height: auto; 
+      width: min(54vh, 92vw); 
+    }
+    .short-frame::before { 
+      content:""; 
+      display:block; 
+      padding-top: 177.78%; 
+    }
+    .short-frame > * { 
+      position: absolute; 
+      inset: 0; 
+    }
+  }
+  
+  .short-video { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+  }
+  
+  /* Si vidéo horizontale (YouTube 16:9, 4:3…), on contient pour éviter le zoom dégueu */
+  .fit-contain { 
+    object-fit: contain !important; 
+    background: #000; 
   }
 
-  /* Video Wrapper - Fullscreen vertical scroll */
-  .video-wrapper {
-    scroll-snap-type: y mandatory;
-    overflow-y: scroll;
-    -webkit-overflow-scrolling: touch;
-    height: 100vh;
-    width: 100%;
-    scrollbar-width: none;
-    scroll-behavior: smooth;
+  /* Boutons & actions */
+  .nav-btn { 
+    position: absolute; 
+    top: 50%; 
+    transform: translateY(-50%);
+    background: rgba(0,0,0,.45); 
+    color: #fff; 
+    padding: .6rem .8rem; 
+    border-radius: 999px;
+    backdrop-filter: blur(4px); 
+    box-shadow: 0 8px 24px rgba(0,0,0,.35); 
+    transition: .2s;
   }
-
-  .video-wrapper::-webkit-scrollbar {
-    display: none;
+  
+  .nav-btn:hover { 
+    background: rgba(0,0,0,.7); 
   }
-
-  /* Video Container */
-  .video-container {
-    position: relative;
-    width: 100%;
-    height: 100vh;
-    scroll-snap-align: start;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* Video Styling */
-  .video-container video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    background: #111;
-  }
-
-  /* Progress Bar (TikTok style) */
-  .progress-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 0%;
-    height: 3px;
-    background: #a21892;
-    z-index: 10;
-    animation: loading 5s linear forwards;
-  }
-
-  @keyframes loading {
-    from { width: 0%; }
-    to { width: 100%; }
-  }
-
-  /* Overlay Text (Titre de la vidéo) */
-  .overlay-text {
-    position: absolute;
-    bottom: 80px;
-    left: 15px;
-    right: 15px;
-    color: white;
-    font-weight: bold;
-    font-size: 18px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-    opacity: 0.95;
-    z-index: 2;
-    max-width: 90%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Action Buttons (Coeur, Commentaire, Partage) */
-  .action-buttons {
-    position: absolute;
-    right: 15px;
-    bottom: 120px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    z-index: 3;
-  }
-
-  .action-btn {
+  
+  .action-btn { 
+    background: rgba(0,0,0,.35); 
+    padding: .6rem; 
+    border-radius: 999px; 
+    backdrop-filter: blur(2px); 
     display: flex;
     flex-direction: column;
     align-items: center;
-    color: white;
-    font-size: 12px;
-    text-align: center;
+    transition: all 0.2s ease;
   }
-
-  .action-btn svg {
-    width: 28px;
-    height: 28px;
-    fill: white;
+  
+  .action-btn:hover {
+    background: rgba(0,0,0,.55);
+    transform: scale(1.1);
   }
-
-  /* Like Button - Rouge quand aimé */
+  
   .action-btn.liked svg {
-    fill: #ff0050;
+    fill: #ff4d94;
+    color: #ff4d94;
   }
 
-  /* Footer Text (Nom d'utilisateur et description) */
-  .video-footer {
-    position: absolute;
-    bottom: 70px;
-    left: 15px;
-    right: 15px;
-    z-index: 2;
+  /* Désactive la sélection/long-press sur mobile */
+  img, video { 
+    -webkit-user-drag: none; 
+    user-select: none; 
+    -webkit-touch-callout: none;
   }
-
-  .video-footer h3 {
-    font-size: 16px;
-    font-weight: bold;
-    margin: 0;
+  
+  /* Indicateurs */
+  .indicator.active {
+    background-color: white;
   }
-
-  .video-footer p {
-    font-size: 14px;
-    margin: 4px 0 0 0;
-    color: #e0e0e0;
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .short-frame {
+      height: 94vh;
+      max-height: 94vh;
+      width: 96vw;
+    }
+    
+    .nav-btn {
+      padding: 0.5rem;
+    }
+    
+    .action-btn {
+      padding: 0.5rem;
+    }
   }
-
-  /* Loading Spinner */
-  .loading {
-    text-align: center;
-    padding: 20px;
-    color: #a21892;
+  
+  @media (max-width: 480px) {
+    .short-frame {
+      height: 96vh;
+      max-height: 96vh;
+      width: 100vw;
+      border-radius: 0;
+    }
+    
+    .action-btn span {
+      font-size: 0.65rem;
+    }
   }
 </style>
 
-<!-- TikTok-style Video Feed -->
-<div class="video-wrapper" id="videoWrapper">
-  {% include "partials/_video_items.html" %}
-</div>
-
 <script>
-  const wrapper = document.getElementById('videoWrapper');
-  const containers = document.querySelectorAll('.video-container');
+(function(){
+  const track = document.getElementById('videoCarousel');
+  const slides = [...track.querySelectorAll('[data-slide-index]')];
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const indicators = document.querySelectorAll('.indicator');
+  let index = 0;
+  let isTransitioning = false;
 
-  // Gérer la lecture automatique
-  function playVideo(container) {
-    const video = container.querySelector('video');
-    const progressBar = container.querySelector('.progress-bar');
-
-    // Réinitialiser toutes les vidéos
-    containers.forEach(cont => {
-      const v = cont.querySelector('video');
-      const pb = cont.querySelector('.progress-bar');
-      if (cont !== container) {
-        v.pause();
-        if (pb) pb.style.animation = 'none';
-        setTimeout(() => pb.style.animation = 'loading 5s linear forwards', 10);
+  // Fonction pour naviguer entre les vidéos
+  function go(i){
+    if(!slides.length || isTransitioning) return;
+    
+    isTransitioning = true;
+    const prevIndex = index;
+    index = (i + slides.length) % slides.length; // boucle
+    
+    // Mettre à jour les indicateurs
+    indicators.forEach((indicator, idx) => {
+      if (idx === index) {
+        indicator.classList.add('active');
+      } else {
+        indicator.classList.remove('active');
       }
     });
+    
+    track.style.transform = `translateX(-${index * 100}%)`;
+    
+    // Gérer les vidéos
+    slides.forEach((s, idx) => {
+      const v = s.querySelector('video');
+      if(!v) return;
+      
+      if(idx === index) {
+        v.play().catch(e => console.log('Autoplay error:', e));
+        // Remettre à zéro la vidéo si on revient
+        if (idx === prevIndex && v.currentTime > 0.5) {
+          v.currentTime = 0;
+        }
+      } else {
+        v.pause();
+        v.currentTime = 0;
+      }
+    });
+    
+    // Réactiver la navigation après la transition
+    setTimeout(() => {
+      isTransitioning = false;
+    }, 300);
+  }
 
-    // Lancer la vidéo cible
-    video.play().catch(e => console.log("Autoplay bloqué :", e));
-    if (progressBar) {
-      progressBar.style.animation = 'none';
-      setTimeout(() => progressBar.style.animation = 'loading 5s linear forwards', 10);
+  // Navigation avec les boutons
+  prevBtn.addEventListener('click', () => go(index-1));
+  nextBtn.addEventListener('click', () => go(index+1));
+
+  // Navigation avec le clavier
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'ArrowRight') go(index+1);
+    if(e.key === 'ArrowLeft') go(index-1);
+    if(e.key === 'ArrowUp') go(index-1);
+    if(e.key === 'ArrowDown') go(index+1);
+  });
+
+  // Swipe mobile
+  let startX = 0, startY = 0, endX = 0, endY = 0, isSwiping = false;
+  
+  track.addEventListener('touchstart', (e) => {
+    if(e.touches.length !== 1) return;
+    isSwiping = true;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, {passive: true});
+  
+  track.addEventListener('touchmove', (e) => {
+    if(!isSwiping) return;
+    endX = e.touches[0].clientX;
+    endY = e.touches[0].clientY;
+  }, {passive: true});
+  
+  track.addEventListener('touchend', () => {
+    if(!isSwiping) return;
+    isSwiping = false;
+    
+    const deltaX = endX - startX;
+    const deltaY = endY - startY;
+    const absDeltaX = Math.abs(deltaX);
+    const absDeltaY = Math.abs(deltaY);
+    
+    // Seuil minimal pour éviter les déclenchements accidentels
+    if(absDeltaX < 30 && absDeltaY < 30) return;
+    
+    // Swipe horizontal prédominant
+    if(absDeltaX > absDeltaY && absDeltaX > 50) {
+      if(deltaX < 0) {
+        go(index+1); // Swipe gauche -> vidéo suivante
+      } else {
+        go(index-1); // Swipe droite -> vidéo précédente
+      }
+    }
+    
+    // Swipe vertical prédominant (scroll)
+    if(absDeltaY > absDeltaX && absDeltaY > 50) {
+      if(deltaY < 0) {
+        go(index+1); // Swipe haut -> vidéo suivante
+      } else {
+        go(index-1); // Swipe bas -> vidéo précédente
+      }
+    }
+  });
+
+  // Double tap pour like
+  slides.forEach((slide, idx) => {
+    let lastTap = 0;
+    const video = slide.querySelector('video');
+    
+    if(video) {
+      video.addEventListener('touchend', (e) => {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+        
+        if(tapLength < 300 && tapLength > 0) {
+          // Double tap
+          e.preventDefault();
+          likeVideo(video.dataset.videoId, idx);
+        }
+        
+        lastTap = currentTime;
+      });
+    }
+  });
+
+  // Ajuste l'affichage selon le format réel de la vidéo
+  function formatBadgeText(w, h) {
+    const r = w/h; // ratio
+    // arrondi ratio classique
+    const close = (x, y, t=0.03) => Math.abs(x-y) <= t; // tolérance 3%
+    if(close(r, 9/16)) return '9:16';
+    if(close(r, 1)) return '1:1';
+    if(close(r, 4/5)) return '4:5';
+    if(close(r, 3/4)) return '3:4';
+    if(close(r, 16/9)) return '16:9';
+    if(close(r, 4/3)) return '4:3';
+    return r < 0.8 ? 'Vertical' : 'Horizontal';
+  }
+
+  slides.forEach((s, idx) => {
+    const v = s.querySelector('video');
+    const badge = s.querySelector(`#fmt-${idx}`);
+    if(!v) return;
+    
+    v.addEventListener('loadedmetadata', () => {
+      const { videoWidth:w, videoHeight:h } = v;
+      const ratio = w/h;
+      // Si la vidéo est plus "large" que 9:16, on utilise contain, sinon cover
+      const containerRatio = 9/16;
+      if(ratio > containerRatio) {
+        v.classList.add('fit-contain');
+      } else {
+        v.classList.remove('fit-contain');
+      }
+      if(badge) badge.querySelector('span:last-child').textContent = formatBadgeText(w, h);
+    }, {once:true});
+  });
+
+  // Démarre sur la première slide prête
+  window.addEventListener('load', () => {
+    go(0);
+    // Activer les indicateurs
+    if(indicators.length > 0) {
+      indicators[0].classList.add('active');
+    }
+  });
+  
+  window.addEventListener('resize', () => go(index));
+
+  // Fonction de like
+  function likeVideo(videoId, slideIndex) {
+    // Animation de like
+    const likeBtn = slides[slideIndex].querySelector('.like-btn');
+    const likesCount = likeBtn.querySelector('.likes-count');
+    
+    likeBtn.classList.add('liked');
+    
+    // Envoyer la requête AJAX (simulation)
+    fetch(`/account/favorite/video/${videoId}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+      if(data.success) {
+        likesCount.textContent = data.likes_count;
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+  }
+
+  // Gestion des boutons d'action
+  document.addEventListener('click', (e) => {
+    // Like button
+    if(e.target.closest('.like-btn')) {
+      const btn = e.target.closest('.like-btn');
+      const videoId = btn.dataset.videoId;
+      const slideIndex = Array.from(slides).findIndex(slide => 
+        slide.contains(btn)
+      );
+      
+      if(slideIndex !== -1) {
+        likeVideo(videoId, slideIndex);
+      }
+    }
+    
+    // Comment button
+    if(e.target.closest('.comment-btn')) {
+      const btn = e.target.closest('.comment-btn');
+      const videoId = btn.dataset.videoId;
+      openComments(videoId);
+    }
+    
+    // Share button
+    if(e.target.closest('.share-btn')) {
+      const btn = e.target.closest('.share-btn');
+      const videoId = btn.dataset.videoId;
+      shareVideo(videoId);
+    }
+  });
+
+  // Modal de commentaires
+  const commentsModal = document.getElementById('commentsModal');
+  const closeComments = document.getElementById('closeComments');
+  const commentInput = document.getElementById('commentInput');
+  const sendComment = document.getElementById('sendComment');
+  const commentsList = document.getElementById('commentsList');
+  let currentVideoId = null;
+
+  function openComments(videoId) {
+    currentVideoId = videoId;
+    commentsModal.classList.remove('hidden');
+    commentsModal.classList.add('flex');
+    loadComments(videoId);
+  }
+
+  function closeCommentsModal() {
+    commentsModal.classList.add('hidden');
+    commentsModal.classList.remove('flex');
+    currentVideoId = null;
+    commentsList.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Chargement des commentaires...</p></div>';
+  }
+
+  function loadComments(videoId) {
+    // Simulation du chargement des commentaires
+    commentsList.innerHTML = `
+      <div class="space-y-4">
+        <div class="flex items-start space-x-3">
+          <div class="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold">U</div>
+          <div class="flex-1">
+            <div class="bg-white/10 rounded-2xl p-3">
+              <p class="text-white font-medium text-sm">Utilisateur 1</p>
+              <p class="text-white/80 text-sm mt-1">Super vidéo ! J'adore ce contenu.</p>
+            </div>
+            <p class="text-white/50 text-xs mt-1">Il y a 2 heures</p>
+          </div>
+        </div>
+        <div class="flex items-start space-x-3">
+          <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">A</div>
+          <div class="flex-1">
+            <div class="bg-white/10 rounded-2xl p-3">
+              <p class="text-white font-medium text-sm">Alice</p>
+              <p class="text-white/80 text-sm mt-1">Très belle réalisation, merci pour ce partage !</p>
+            </div>
+            <p class="text-white/50 text-xs mt-1">Il y a 1 jour</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function shareVideo(videoId) {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Regardez cette vidéo !',
+        url: window.location.origin + '/content/video/' + videoId + '/'
+      }).catch(console.error);
+    } else {
+      // Fallback: copier le lien
+      const url = window.location.origin + '/content/video/' + videoId + '/';
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Lien copié dans le presse-papiers !');
+      }).catch(console.error);
     }
   }
 
-  // Observer quand une vidéo entre en vue
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        playVideo(entry.target);
+  // Événements du modal
+  closeComments.addEventListener('click', closeCommentsModal);
+  
+  commentsModal.addEventListener('click', (e) => {
+    if(e.target === commentsModal) {
+      closeCommentsModal();
+    }
+  });
+
+  sendComment.addEventListener('click', () => {
+    const text = commentInput.value.trim();
+    if(text && currentVideoId) {
+      // Simulation de l'envoi du commentaire
+      const newComment = document.createElement('div');
+      newComment.className = 'flex items-start space-x-3';
+      newComment.innerHTML = `
+        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">{{ user.username|first|upper }}</div>
+        <div class="flex-1">
+          <div class="bg-white/10 rounded-2xl p-3">
+            <p class="text-white font-medium text-sm">{{ user.username }}</p>
+            <p class="text-white/80 text-sm mt-1">${text}</p>
+          </div>
+          <p class="text-white/50 text-xs mt-1">À l'instant</p>
+        </div>
+      `;
+      commentsList.prepend(newComment);
+      commentInput.value = '';
+    }
+  });
+
+  commentInput.addEventListener('keypress', (e) => {
+    if(e.key === 'Enter') {
+      sendComment.click();
+    }
+  });
+
+  // Amélioration de l'expérience utilisateur
+  document.addEventListener('visibilitychange', () => {
+    if(document.hidden) {
+      // Pause toutes les vidéos quand l'onglet n'est pas visible
+      slides.forEach(slide => {
+        const video = slide.querySelector('video');
+        if(video) {
+          video.pause();
+        }
+      });
+    } else {
+      // Reprendre la vidéo actuelle
+      const currentVideo = slides[index]?.querySelector('video');
+      if(currentVideo) {
+        currentVideo.play().catch(e => console.log('Autoplay error:', e));
+      }
+    }
+  });
+
+  // Précharger les vidéos adjacentes
+  function preloadAdjacentVideos() {
+    const prevIndex = (index - 1 + slides.length) % slides.length;
+    const nextIndex = (index + 1) % slides.length;
+    
+    [prevIndex, nextIndex].forEach(idx => {
+      const video = slides[idx]?.querySelector('video');
+      if(video && video.readyState < 3) { // HAVE_FUTURE_DATA
+        video.load();
       }
     });
-  }, { threshold: 0.6 });
+  }
 
-  containers.forEach(container => {
-    observer.observe(container);
-  });
+  // Précharger quand on change de vidéo
+  const originalGo = go;
+  go = function(i) {
+    originalGo(i);
+    setTimeout(preloadAdjacentVideos, 100);
+  };
 
-  // Lancer la première vidéo
-  window.addEventListener('load', () => {
-    if (containers.length > 0) {
-      playVideo(containers[0]);
-    }
-  });
-
-  // Charger plus de vidéos en bas
-  let page = 1;
-  let loading = false;
-
-  wrapper.addEventListener('scroll', () => {
-    if (wrapper.scrollHeight - wrapper.scrollTop <= wrapper.clientHeight + 200 && !loading) {
-      loading = true;
-      page += 1;
-
-      fetch(`/load-more-videos/?page=${page}`)
-        .then(res => res.text())
-        .then(html => {
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = html.trim();
-
-          // Ajouter les nouveaux conteneurs
-          Array.from(tempDiv.children).forEach(child => {
-            wrapper.appendChild(child);
-            observer.observe(child);
-          });
-
-          loading = false;
-        })
-        .catch(err => {
-          console.error("Erreur chargement:", err);
-          loading = false;
-        });
-    }
-  });
-
-  // Gérer les likes
-  document.querySelectorAll('.action-btn.like').forEach(btn => {
-    btn.addEventListener('click', function () {
-      this.classList.toggle('liked');
-    });
-  });
+})();
 </script>
 {% endblock %}

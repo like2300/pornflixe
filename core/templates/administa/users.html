@@ -1,0 +1,131 @@
+<!-- templates/administa/users.html -->
+{% extends "administa/base_admin.html" %}
+
+{% block page_title %}Gestion des Utilisateurs{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow">
+  <div class="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between">
+    <h1 class="text-xl font-semibold mb-3 md:mb-0">Utilisateurs</h1>
+    
+    <!-- Search -->
+    <form method="get" class="flex">
+      <input type="text" name="q" placeholder="Rechercher..." class="px-3 py-2 border rounded-l-lg w-full sm:w-48 text-sm" value="{{ request.GET.q }}">
+      <button type="submit" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-r-lg text-sm">
+        <i class="fas fa-search"></i>
+      </button>
+    </form>
+  </div>
+  
+  <!-- Users Table -->
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Inscription</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Abonnement</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Statut</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        {% for user in all_users %}
+          <tr>
+            <td class="px-4 py-4 whitespace-nowrap">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                  <span class="text-indigo-800 font-medium">{{ user.username|first|upper }}</span>
+                </div>
+                <div class="ml-3">
+                  <div class="text-sm font-medium text-gray-900">{{ user.username }}</div>
+                  <div class="text-xs text-gray-500 sm:hidden">{{ user.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
+              {{ user.date_joined|date:"d/m/Y" }}
+            </td>
+            <td class="px-4 py-4 whitespace-nowrap">
+              {% if user.active_subscription %}
+                <div>
+                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                    {{ user.active_subscription.plan.name }}
+                  </span>
+                  <div class="text-xs text-gray-500 sm:hidden">
+                    {{ user.active_subscription.days_remaining }} jours
+                  </div>
+                </div>
+              {% else %}
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                  Aucun
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-4 whitespace-nowrap hidden md:table-cell">
+              {% if user.is_active %}
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                  Actif
+                </span>
+              {% else %}
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                  Inactif
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-4 whitespace-nowrap text-sm">
+              <div class="flex space-x-2">
+                <a href="{% url 'user_detail' user.id %}" class="text-indigo-600 hover:text-indigo-900">
+                  <i class="fas fa-eye"></i>
+                </a>
+                {% if user.active_subscription %}
+                  <a href="{% url 'deactivate_user_subscription' user.id %}" class="text-red-600 hover:text-red-900">
+                    <i class="fas fa-times-circle"></i>
+                  </a>
+                {% else %}
+                  <a href="{% url 'activate_user_subscription' user.id %}" class="text-green-600 hover:text-green-900">
+                    <i class="fas fa-check-circle"></i>
+                  </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="px-4 py-4 text-center text-gray-500">
+              Aucun utilisateur trouvé
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+    <div class="px-4 py-3 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <div class="text-sm text-gray-700 mb-2 sm:mb-0">
+        Affichage de {{ page_obj.start_index }} à {{ page_obj.end_index }} sur {{ page_obj.paginator.count }} utilisateurs
+      </div>
+      
+      <div class="flex space-x-1">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="px-3 py-1 bg-gray-200 rounded text-sm">
+            <i class="fas fa-chevron-left"></i>
+          </a>
+        {% endif %}
+        
+        <span class="px-3 py-1 bg-gradient-primary text-white rounded text-sm">
+          {{ page_obj.number }}
+        </span>
+        
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="px-3 py-1 bg-gray-200 rounded text-sm">
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

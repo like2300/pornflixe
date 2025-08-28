@@ -225,6 +225,13 @@ class Video(models.Model):
         """Dépublier"""
         self.publish_date = None
         self.save(update_fields=['publish_date'])
+        
+    @property
+    def is_synced_with_r2(self):
+        """Vérifie si la vidéo est synchronisée avec Cloudflare R2"""
+        # Cette méthode sera implémentée plus tard avec la vérification réelle
+        # Pour l'instant, nous retournons False par défaut
+        return False
 
     def get_time_ago(self):
         now = timezone.now()
@@ -278,6 +285,13 @@ class Photo(models.Model):
         """Dépublier"""
         self.publish_date = None
         self.save(update_fields=['publish_date'])
+        
+    @property
+    def is_synced_with_r2(self):
+        """Vérifie si la photo est synchronisée avec Cloudflare R2"""
+        # Cette méthode sera implémentée plus tard avec la vérification réelle
+        # Pour l'instant, nous retournons False par défaut
+        return False
 
     def get_time_ago(self):
         now = timezone.now()

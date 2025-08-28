@@ -9,6 +9,7 @@
 <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
 <!-- Slider Container -->
+ <br class="mt-8 md:hidden">
 <div class="w-full h-72 sm:h-96 md:h-[475px] mt-8 rounded-3xl overflow-hidden shadow-2xl relative group" style="border: 2px solid transparent;" data-gradient-border>
   <div id="slider" class="w-full h-full bg-cover bg-center transition-all duration-1000 ease-in-out"></div>
 
@@ -108,7 +109,7 @@
       </a>
     </div>
 
-    <div class="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4">
+    <div class="columns-2 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4">
       {% for photo in photos %}
         <div class="break-inside-avoid">
           <img  src="{{ photo.image.url }}"

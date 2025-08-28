@@ -1,215 +1,66 @@
-{% load static %}
+<!-- templates/administa/base.html -->
 <!DOCTYPE html>
-<html lang="fr" id="page">
+<html lang="fr" class="h-full bg-gray-100">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AdminHub - Dashboard</title>
-
-    <!-- Boxicons CDN -->
-    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-    
-    <!-- CSS Local -->
-    <link rel="stylesheet" href="{% static '/style.css' %}" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin - Pornflixe</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 </head>
-<body>
-    <!-- SIDEBAR -->
-    <section id="sidebar">
-        <a href=" " class="brand">
-            <i class='bx bxs-cube bx-lg'></i>
-            <span class="text">AdminHub</span>
-        </a>
-        <ul class="side-menu top">
-            <li class="{% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
-                <a href=" ">
-                    <i class='bx bxs-dashboard bx-sm'></i>
-                    <span class="text">Tableau de bord</span>
-                </a>
-            </li>
-            <li>
-                <a href=" ">
-                    <i class='bx bxs-video bx-sm'></i>
-                    <span class="text">Gérer Vidéos</span>
-                </a>
-            </li>
-            <li>
-                <a href=" ">
-                    <i class='bx bxs-user-detail bx-sm'></i>
-                    <span class="text">Utilisateurs</span>
-                </a>
-            </li>
-            <li>
-                <a href=" ">
-                    <i class='bx bxs-credit-card bx-sm'></i>
-                    <span class="text">Abonnements</span>
-                </a>
-            </li>
-            <li>
-                <a href=" ">
-                    <i class='bx bxs-chat bx-sm'></i>
-                    <span class="text">Commentaires</span>
-                </a>
-            </li>
-        </ul>
-        <ul class="side-menu bottom">
-            <li>
-                <a href=" " class="logout">
-                    <i class='bx bx-log-out bx-sm'></i>
-                    <span class="text">Se déconnecter</span>
-                </a>
-            </li>
-        </ul>
-        
-    </section>
-
-    <!-- CONTENT -->
-    <section id="content">
-        <!-- NAVBAR -->
-        <nav>
-            <i class='bx bx-menu bx-sm'></i>
-            <a href="#" class="nav-link">Catégories</a>
-            <form action="#" method="get">
-                <div class="form-input">
-                    <input type="search" placeholder="Rechercher..." />
-                    <button type="submit" class="search-btn"><i class='bx bx-search'></i></button>
-                </div>
-            </form>
-            <label class="switch-mode">
-                <input type="checkbox" id="switch-mode" />
-                <span class="slider round"></span>
-            </label>
-            <a href="#" class="notification" id="notificationIcon">
-                <i class='bx bxs-bell bx-tada-hover'></i>
-                <span class="num">{{ notifications_count|default:0 }}</span>
-            </a>
-            <div class="notification-menu" id="notificationMenu">
-                <h5>Notifications</h5>
-                <ul>
-                    {% if notifications %}
-                        {% for notif in notifications %}
-                            <li>{{ notif.message }}</li>
-                        {% endfor %}
-                    {% else %}
-                        <li>Aucune notification</li>
-                    {% endif %}
-                </ul>
+<body class="h-full" x-data="{ open: false }">
+  <div class="min-h-full">
+    <!-- Top Navbar -->
+    <nav class="bg-black shadow-lg">
+      <div class="px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center">
+            <a href="{% url 'admin_dashboard' %}" class="text-white font-bold text-xl">Admin Panel</a>
+          </div>
+          <div class="hidden md:block">
+            <div class="ml-10 flex items-baseline space-x-4">
+              <a href="{% url 'admin_dashboard' %}" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded text-sm">Dashboard</a>
+              <a href="{% url 'admin_videos' %}" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded text-sm">Vidéos</a>
+              <a href="{% url 'admin_photos' %}" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded text-sm">Photos</a>
+              <a href="{% url 'admin_users' %}" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded text-sm">Utilisateurs</a>
+              <a href="{% url 'admin_subscriptions' %}" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded text-sm">Abonnements</a>
             </div>
-            <a href="#" class="profile" id="profileIcon">
-                <img src="https://placehold.co/100x100/333/FFF?text={{ request.user.username|slice:":1" }}" alt="Avatar" />
-            </a>
-            <div class="profile-menu" id="profileMenu">
-                <ul>
-                    <li><a href=" ">Modifier mon nom</a></li>
-                    <li><a href=" ">Changer mot de passe</a></li>
-                    <li><a href=" ">Se déconnecter</a></li>
-                </ul>
+          </div>
+          <div class="-mr-2 flex md:hidden">
+            <button @click="open = !open" class="text-gray-400 hover:text-white">
+              <i class="fas fa-bars text-xl"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile menu -->
+      <div x-show="open" class="md:hidden bg-black">
+        <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+          <a href="{% url 'admin_dashboard' %}" class="block text-gray-300 hover:bg-gray-700 px-3 py-2 rounded text-sm">Dashboard</a>
+          <a href="{% url 'admin_videos' %}" class="block text-gray-300 hover:bg-gray-700 px-3 py-2 rounded text-sm">Vidéos</a>
+          <a href="{% url 'admin_photos' %}" class="block text-gray-300 hover:bg-gray-700 px-3 py-2 rounded text-sm">Photos</a>
+          <a href="{% url 'admin_users' %}" class="block text-gray-300 hover:bg-gray-700 px-3 py-2 rounded text-sm">Utilisateurs</a>
+          <a href="{% url 'admin_subscriptions' %}" class="block text-gray-300 hover:bg-gray-700 px-3 py-2 rounded text-sm">Abonnements</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="py-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="mb-4 p-4 rounded bg-{{ message.tags }}-100 border border-{{ message.tags }}-400 text-{{ message.tags }}-700">
+              {{ message }}
             </div>
-        </nav>
+          {% endfor %}
+        {% endif %}
 
-        <!-- MAIN -->
-        <main>
-            <div class="head-title">
-                <div class="left">
-                    <h1>Tableau de bord</h1>
-                    <ul class="breadcrumb">
-                        <li><a href=" ">Accueil</a></li>
-                        <li><i class='bx bx-chevron-right'></i></li>
-                        <li><a class="active" href="#">Dashboard</a></li>
-                    </ul>
-                </div>
-                <a href=" " class="btn-download">
-                    <i class='bx bxs-cog bx-fade-down-hover'></i>
-                    <span class="text">Admin Django</span>
-                </a>
-            </div>
-
-            <!-- Statistiques -->
-            <ul class="box-info">
-                <li>
-                    <i class='bx bxs-video'></i>
-                    <span class="text">
-                        <h3>{{ new_videos_count }}</h3>
-                        <p>Vidéos publiées</p>
-                    </span>
-                </li>
-                <li>
-                    <i class='bx bxs-user-account'></i>
-                    <span class="text">
-                        <h3>{{ active_subscriptions_count }}</h3>
-                        <p>Abonnements actifs</p>
-                    </span>
-                </li>
-                <li>
-                    <i class='bx bxs-heart'></i>
-                    <span class="text">
-                        <h3>{{ total_favorites }}</h3>
-                        <p>Favoris (vous)</p>
-                    </span>
-                </li>
-            </ul>
-
-            <!-- Tableaux -->
-            <div class="table-data">
-                <!-- Récents -->
-                <div class="order">
-                    <div class="head">
-                        <h3>Vidéos récentes</h3>
-                        <i class='bx bx-search'></i>
-                        <i class='bx bx-filter'></i>
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Vidéo</th>
-                                <th>Date</th>
-                                <th>Vues</th>
-                                <th>Statut</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for video in recent_videos %}
-                            <tr>
-                                <td>
-                                    <img src="{{ video.cover_film.url }}" alt="{{ video.title }}" class="thumb" />
-                                    <p>{{ video.title|truncatechars:25 }}</p>
-                                </td>
-                                <td>{{ video.publish_date|date:"d/m/Y" }}</td>
-                                <td>{{ video.views }}</td>
-                                <td>
-                                    <span class="status {% if video.is_published %}completed{% else %}pending{% endif %}">
-                                        {{ video.get_status_display|default:"Brouillon" }}
-                                    </span>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="4" class="empty">Aucune vidéo publiée.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Abonnements -->
-                <div class="todo">
-                    <div class="head">
-                        <h3>Abonnements actifs</h3>
-                        <i class='bx bx-filter'></i>
-                    </div>
-                    <ul class="todo-list">
-                        {% for sub in active_subscriptions %}
-                        <li class="completed">
-                            <p><strong>{{ sub.user.username }}</strong> - {{ sub.plan.name }}</p>
-                            <p>Expire le : {{ sub.end_date|date:"d/m/Y" }}</p>
-                        </li>
-                        {% empty %}
-                        <li>Aucun abonnement actif.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-        </main>
-    </section>
-
-    <!-- SCRIPT -->
-    <script src="{% static 'script.js' %}"></script>
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
 </body>
 </html>

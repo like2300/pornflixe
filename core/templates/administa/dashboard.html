@@ -1,0 +1,254 @@
+<!-- templates/administa/dashboard.html -->
+{% extends "administa/base_admin.html" %}
+
+{% block page_title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
+  <!-- Stat Cards -->
+  <div class="card">
+    <div class="card-body">
+      <div class="flex items-center">
+        <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+          <i class="fas fa-film text-xl"></i>
+        </div>
+        <div>
+          <p class="text-gray-500 text-sm">Vidéos</p>
+          <p class="text-2xl font-bold">{{ videos_count }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-body">
+      <div class="flex items-center">
+        <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+          <i class="fas fa-image text-xl"></i>
+        </div>
+        <div>
+          <p class="text-gray-500 text-sm">Photos</p>
+          <p class="text-2xl font-bold">{{ photos_count }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-body">
+      <div class="flex items-center">
+        <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
+          <i class="fas fa-users text-xl"></i>
+        </div>
+        <div>
+          <p class="text-gray-500 text-sm">Utilisateurs</p>
+          <p class="text-2xl font-bold">{{ users_count }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-body">
+      <div class="flex items-center">
+        <div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
+          <i class="fas fa-credit-card text-xl"></i>
+        </div>
+        <div>
+          <p class="text-gray-500 text-sm">Abonnements actifs</p>
+          <p class="text-2xl font-bold">{{ active_subscriptions_count }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts and Recent Content -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+  <!-- Charts -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="text-lg font-semibold">Statistiques de contenu</h2>
+    </div>
+    <div class="card-body">
+      <canvas id="contentChart" height="250"></canvas>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-header">
+      <h2 class="text-lg font-semibold">Abonnements</h2>
+    </div>
+    <div class="card-body">
+      <canvas id="subscriptionChart" height="250"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Content and Active Subscriptions -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+  <!-- Recent Videos -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="text-lg font-semibold">Vidéos récentes</h2>
+    </div>
+    <div class="card-body">
+      {% if recent_videos %}
+        <div class="space-y-4">
+          {% for video in recent_videos %}
+            <div class="flex items-center border-b pb-3 last:border-0 last:pb-0">
+              <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 rounded-md flex items-center justify-center mr-3 sm:mr-4">
+                <i class="fas fa-film text-gray-500"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-medium text-sm sm:text-base truncate">{{ video.title }}</h3>
+                <p class="text-xs sm:text-sm text-gray-500">{{ video.created_at|date:"d/m/Y H:i" }}</p>
+              </div>
+              <div class="text-xs sm:text-sm text-gray-500 ml-2">
+                {{ video.views }} vues
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-gray-500 text-center py-4">Aucune vidéo récente</p>
+      {% endif %}
+    </div>
+  </div>
+  
+  <!-- Active Subscriptions -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="text-lg font-semibold">Abonnements actifs (expirant bientôt)</h2>
+    </div>
+    <div class="card-body">
+      {% if active_subscriptions %}
+        <div class="space-y-4">
+          {% for subscription in active_subscriptions %}
+            <div class="flex items-center border-b pb-3 last:border-0 last:pb-0">
+              <div class="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-3 sm:mr-4">
+                <i class="fas fa-user text-indigo-600"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-medium text-sm sm:text-base truncate">{{ subscription.user.username }}</h3>
+                <p class="text-xs sm:text-sm text-gray-500">{{ subscription.plan.name }}</p>
+              </div>
+              <div class="text-xs">
+                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
+                  {{ subscription.days_remaining }} jours
+                </span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-gray-500 text-center py-4">Aucun abonnement actif</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Publication Progress -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="text-lg font-semibold">Publication Cloudflare R2</h2>
+  </div>
+  <div class="card-body">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+      <div class="border rounded-lg p-4">
+        <h3 class="font-medium mb-2">Statut</h3>
+        <div class="flex items-center">
+          <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+          <span>Connecté à Cloudflare R2</span>
+        </div>
+      </div>
+      
+      <div class="border rounded-lg p-4">
+        <h3 class="font-medium mb-2">Stockage utilisé</h3>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div class="bg-blue-600 h-2 rounded-full" style="width: 45%"></div>
+        </div>
+        <p class="text-sm text-gray-500 mt-1">12.5 GB / 25 GB</p>
+      </div>
+      
+      <div class="border rounded-lg p-4">
+        <h3 class="font-medium mb-2">Dernière synchronisation</h3>
+        <p>Il y a 2 heures</p>
+      </div>
+    </div>
+    
+    <div class="mt-4">
+      <button class="bg-gradient-primary text-white px-4 py-2 rounded-lg hover:opacity-90">
+        <i class="fas fa-sync-alt mr-2"></i>Synchroniser maintenant
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Content Chart
+  const contentCtx = document.getElementById('contentChart').getContext('2d');
+  const contentChart = new Chart(contentCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Vidéos', 'Photos', 'Utilisateurs', 'Abonnements'],
+      datasets: [{
+        label: 'Nombre',
+        data: [{{ videos_count }}, {{ photos_count }}, {{ users_count }}, {{ active_subscriptions_count }}],
+        backgroundColor: [
+          'rgba(54, 162, 235, 0.2)',
+          'rgba(75, 192, 192, 0.2)',
+          'rgba(153, 102, 255, 0.2)',
+          'rgba(255, 206, 86, 0.2)'
+        ],
+        borderColor: [
+          'rgba(54, 162, 235, 1)',
+          'rgba(75, 192, 192, 1)',
+          'rgba(153, 102, 255, 1)',
+          'rgba(255, 206, 86, 1)'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+  
+  // Subscription Chart
+  const subscriptionCtx = document.getElementById('subscriptionChart').getContext('2d');
+  const subscriptionChart = new Chart(subscriptionCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Actifs', 'Expirés', 'Inactifs'],
+      datasets: [{
+        label: 'Abonnements',
+        data: [{{ active_subscriptions_count }}, 5, 10],
+        backgroundColor: [
+          'rgba(75, 192, 192, 0.2)',
+          'rgba(255, 206, 86, 0.2)',
+          'rgba(255, 99, 132, 0.2)'
+        ],
+        borderColor: [
+          'rgba(75, 192, 192, 1)',
+          'rgba(255, 206, 86, 1)',
+          'rgba(255, 99, 132, 1)'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+</script>
+{% endblock %}

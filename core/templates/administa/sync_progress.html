@@ -1,0 +1,102 @@
+<!-- templates/administa/sync_progress.html -->
+{% extends "administa/base_admin.html" %}
+
+{% block page_title %}Synchronisation en cours{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h1 class="text-2xl font-bold text-gray-900">Synchronisation en cours</h1>
+    </div>
+    
+    <div class="p-6">
+      <div class="text-center mb-8">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
+          <i class="fas fa-sync-alt text-indigo-600 fa-spin"></i>
+        </div>
+        <h3 class="mt-4 text-lg font-medium text-gray-900">Synchronisation avec Cloudflare R2</h3>
+        <p class="mt-2 text-sm text-gray-500">Veuillez patienter pendant la synchronisation de votre contenu.</p>
+      </div>
+      
+      <div class="space-y-6">
+        <div>
+          <div class="flex justify-between text-sm font-medium text-gray-700 mb-2">
+            <span>Progression</span>
+            <span id="progressText">0%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-3">
+            <div id="progressBar" class="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+        
+        <div class="bg-gray-50 rounded-lg p-4">
+          <div class="flex items-center text-sm text-gray-600">
+            <i class="fas fa-info-circle text-indigo-500 mr-2"></i>
+            <span id="statusText">Initialisation de la synchronisation...</span>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+            <div class="text-center">
+              <p class="text-sm font-medium text-green-800">Vidéos synchronisées</p>
+              <p class="text-2xl font-bold text-green-700 mt-1" id="syncedVideos">0</p>
+            </div>
+          </div>
+          
+          <div class="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4">
+            <div class="text-center">
+              <p class="text-sm font-medium text-blue-800">Photos synchronisées</p>
+              <p class="text-2xl font-bold text-blue-700 mt-1" id="syncedPhotos">0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Simuler la synchronisation
+  function simulateSync() {
+    let progress = 0;
+    let syncedVideos = 0;
+    let syncedPhotos = 0;
+    const totalVideos = 42;
+    const totalPhotos = 28;
+    
+    const interval = setInterval(function() {
+      progress += Math.floor(Math.random() * 5) + 1;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        document.getElementById('statusText').textContent = 'Synchronisation terminée avec succès!';
+      } else {
+        document.getElementById('statusText').textContent = 'Synchronisation en cours...';
+      }
+      
+      document.getElementById('progressBar').style.width = progress + '%';
+      document.getElementById('progressText').textContent = progress + '%';
+      
+      // Mettre à jour les compteurs
+      if (syncedVideos < totalVideos) {
+        syncedVideos += Math.floor(Math.random() * 3);
+        if (syncedVideos > totalVideos) syncedVideos = totalVideos;
+        document.getElementById('syncedVideos').textContent = syncedVideos;
+      }
+      
+      if (syncedPhotos < totalPhotos) {
+        syncedPhotos += Math.floor(Math.random() * 2);
+        if (syncedPhotos > totalPhotos) syncedPhotos = totalPhotos;
+        document.getElementById('syncedPhotos').textContent = syncedPhotos;
+      }
+    }, 300);
+  }
+  
+  // Démarrer la simulation
+  simulateSync();
+</script>
+{% endblock %}

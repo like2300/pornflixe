@@ -5,7 +5,9 @@ from django.http import JsonResponse, HttpResponse, Http404
 from django.views.generic.base import ContextMixin
 from django.urls import reverse_lazy, reverse
 from django.contrib import messages
-from django.db.models import F, Count, Q
+from django.db.models import F, Count, Q 
+from django.contrib.auth.decorators import user_passes_test
+from django.forms import modelform_factory 
 from django.db import transaction
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
@@ -21,6 +23,13 @@ from paypal.standard.forms import PayPalPaymentsForm
 from django.contrib.auth import get_user_model
 from .models import *
 from django.core.exceptions import PermissionDenied 
+# pagginator
+from django.core.paginator import Paginator
+
+# Pour Cloudflare R2
+import boto3
+from botocore.exceptions import ClientError
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -208,7 +217,6 @@ class ContentDetailView(BaseContextMixin, DetailView):
         if self.kwargs.get("content_type") == "photo":
             return ['pages/dynamiquePages/photo_detail.html']
         return super().get_template_names()
-
 
 
 class VideoPlayerView(BaseContextMixin, DetailView):
@@ -484,7 +492,6 @@ class SubscribeView(LoginRequiredMixin, BaseContextMixin, DetailView):
         
         return context
  
-
 class CancelView(BaseContextMixin, TemplateView):
     template_name = 'pages/dynamiquePages/payement/payment_cancel.html'
 
@@ -521,7 +528,6 @@ def activate_subscription(user_id, plan_id):
         except Exception as e:
             logger.exception(f"Échec activation abonnement: {str(e)}")
             raise
-
 
 
 def contact_support(request):
@@ -602,23 +608,535 @@ def handle_paypal_ipn(sender, **kwargs):
 
 
 
+
+
+def is_admin(user):
+    return user.is_staff or user.is_superuser
+
+@user_passes_test(is_admin)
 def admin_dashboard(request):
-    # Statistiques (tu peux les adapter)
-    new_videos_count = Video.objects.filter(publish_date__lte=timezone.now()).count()
-    active_subscriptions_count = UserSubscription.objects.filter(is_active=True).count()
-    total_favorites = request.user.favorite_videos.count()  # Exemple stat perso
-
-    # Vidéos récentes publiées (limitées à 5)
-    recent_videos = Video.objects.filter(publish_date__lte=timezone.now()).order_by('-publish_date')[:5]
-
-    # Abonnements actifs (limité à 5)
-    active_subscriptions = UserSubscription.objects.filter(is_active=True).order_by('end_date')[:5]
-
+    # Statistiques de base
+    videos_count = Video.objects.count()
+    photos_count = Photo.objects.count()
+    users_count = User.objects.count()
+    active_subscriptions_count = UserSubscription.objects.filter(
+        is_active=True, 
+        end_date__gt=timezone.now()
+    ).count()
+    
+    # Contenu récent (7 derniers jours)
+    one_week_ago = timezone.now() - timezone.timedelta(days=7)
+    recent_videos = Video.objects.filter(
+        created_at__gte=one_week_ago
+    ).order_by('-created_at')[:5]
+    
+    # Abonnements actifs (avec moins de 15 jours restants)
+    active_subscriptions = UserSubscription.objects.filter(
+        is_active=True, 
+        end_date__gt=timezone.now()
+    ).select_related('user', 'plan').order_by('end_date')[:5]
+    
+    # Ajouter les jours restants pour chaque abonnement
+    for subscription in active_subscriptions:
+        subscription.days_remaining = (subscription.end_date - timezone.now().date()).days
+    
+    # Statistiques supplémentaires
+    total_views = Video.objects.aggregate(models.Sum('views'))['views__sum'] or 0
+    total_photos_views = Photo.objects.aggregate(models.Sum('views'))['views__sum'] or 0
+    total_content_views = total_views + total_photos_views
+    
+    # Contenu le plus populaire
+    popular_videos = Video.objects.order_by('-views')[:5]
+    
     context = {
-        'new_videos_count': new_videos_count,
+        'videos_count': videos_count,
+        'photos_count': photos_count,
+        'users_count': users_count,
         'active_subscriptions_count': active_subscriptions_count,
-        'total_favorites': total_favorites,
         'recent_videos': recent_videos,
         'active_subscriptions': active_subscriptions,
+        'total_content_views': total_content_views,
+        'popular_videos': popular_videos,
     }
-    return render(request, 'administa/base.html', context)
+    return render(request, 'administa/dashboard.html', context)
+
+
+
+
+
+ 
+# Vues pour la gestion des vidéos
+@user_passes_test(is_admin)
+def admin_videos(request):
+    videos = Video.objects.all().order_by('-created_at')
+    
+    # Recherche
+    query = request.GET.get('q')
+    if query:
+        videos = videos.filter(Q(title__icontains=query) | Q(description__icontains=query))
+    
+    # Pagination
+    paginator = Paginator(videos, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'administa/videos.html', {
+        'all_videos': page_obj,
+        'page_obj': page_obj
+    })
+
+@user_passes_test(is_admin)
+def add_video(request):
+    VideoForm = modelform_factory(Video, exclude=('created_at', 'views', 'favorites'))
+    
+    if request.method == 'POST':
+        form = VideoForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Vidéo ajoutée avec succès!')
+            return redirect('admin_videos')
+    else:
+        form = VideoForm()
+    
+    return render(request, 'administa/video_form.html', {'form': form, 'title': 'Ajouter une vidéo'})
+
+@user_passes_test(is_admin)
+def edit_video(request, video_id):
+    video = get_object_or_404(Video, id=video_id)
+    VideoForm = modelform_factory(Video, exclude=('created_at', 'views', 'favorites'))
+    
+    if request.method == 'POST':
+        form = VideoForm(request.POST, request.FILES, instance=video)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Vidéo modifiée avec succès!')
+            return redirect('admin_videos')
+    else:
+        form = VideoForm(instance=video)
+    
+    return render(request, 'administa/video_form.html', {'form': form, 'title': 'Modifier la vidéo'})
+
+@user_passes_test(is_admin)
+def delete_video(request, video_id):
+    video = get_object_or_404(Video, id=video_id)
+    
+    if request.method == 'POST':
+        video.delete()
+        messages.success(request, 'Vidéo supprimée avec succès!')
+        return redirect('admin_videos')
+    
+    return render(request, 'administa/confirm_delete.html', {'object': video, 'object_type': 'vidéo'})
+
+# Vues pour la gestion des photos (similaires aux vidéos)
+@user_passes_test(is_admin)
+def admin_photos(request):
+    photos = Photo.objects.all().order_by('-created_at')
+    
+    query = request.GET.get('q')
+    if query:
+        photos = photos.filter(Q(title__icontains=query) | Q(description__icontains=query))
+    
+    paginator = Paginator(photos, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'administa/photos.html', {
+        'all_photos': page_obj,
+        'page_obj': page_obj
+    })
+
+@user_passes_test(is_admin)
+def add_photo(request):
+    PhotoForm = modelform_factory(Photo, exclude=('created_at', 'views'))
+    
+    if request.method == 'POST':
+        form = PhotoForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Photo ajoutée avec succès!')
+            return redirect('admin_photos')
+    else:
+        form = PhotoForm()
+    
+    return render(request, 'administa/photo_form.html', {'form': form, 'title': 'Ajouter une photo'})
+
+@user_passes_test(is_admin)
+def edit_photo(request, photo_id):
+    photo = get_object_or_404(Photo, id=photo_id)
+    PhotoForm = modelform_factory(Photo, exclude=('created_at', 'views'))
+    
+    if request.method == 'POST':
+        form = PhotoForm(request.POST, request.FILES, instance=photo)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Photo modifiée avec succès!')
+            return redirect('admin_photos')
+    else:
+        form = PhotoForm(instance=photo)
+    
+    return render(request, 'administa/photo_form.html', {'form': form, 'title': 'Modifier la photo'})
+
+@user_passes_test(is_admin)
+def delete_photo(request, photo_id):
+    photo = get_object_or_404(Photo, id=photo_id)
+    
+    if request.method == 'POST':
+        photo.delete()
+        messages.success(request, 'Photo supprimée avec succès!')
+        return redirect('admin_photos')
+    
+    return render(request, 'administa/confirm_delete.html', {'object': photo, 'object_type': 'photo'})
+
+# Vues pour la gestion des utilisateurs
+@user_passes_test(is_admin)
+def admin_users(request):
+    users = User.objects.all().order_by('-date_joined')
+    
+    query = request.GET.get('q')
+    if query:
+        users = users.filter(Q(username__icontains=query) | Q(email__icontains=query))
+    
+    # Ajouter les informations d'abonnement
+    for user in users:
+        user.active_subscription = UserSubscription.objects.filter(
+            user=user, 
+            is_active=True, 
+            end_date__gt=timezone.now()
+        ).first()
+    
+    paginator = Paginator(users, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'administa/users.html', {
+        'all_users': page_obj,
+        'page_obj': page_obj
+    })
+
+@user_passes_test(is_admin)
+def user_detail(request, user_id):
+    """Affiche les détails d'un utilisateur"""
+    user = get_object_or_404(User, id=user_id)
+    
+    # Récupérer les abonnements de l'utilisateur
+    subscriptions = UserSubscription.objects.filter(user=user).select_related('plan').order_by('-start_date')
+    
+    # Récupérer les vidéos favorites
+    favorite_videos = user.favorite_videos.all()[:10]
+    
+    # Récupérer les photos favorites
+    favorite_photos = user.favorite_photos.all()[:10]
+    
+    context = {
+        'user_obj': user,
+        'subscriptions': subscriptions,
+        'favorite_videos': favorite_videos,
+        'favorite_photos': favorite_photos,
+    }
+    
+    return render(request, 'administa/user_detail.html', context)
+
+@user_passes_test(is_admin)
+def activate_user_subscription(request, user_id):
+    """Active l'abonnement d'un utilisateur"""
+    user = get_object_or_404(User, id=user_id)
+    
+    if request.method == 'POST':
+        try:
+            # Désactiver tous les abonnements existants
+            UserSubscription.objects.filter(user=user).update(is_active=False)
+            
+            # Créer un nouvel abonnement (par défaut, 30 jours)
+            default_plan = SubscriptionPlan.objects.first()
+            if not default_plan:
+                # Créer un plan par défaut si aucun n'existe
+                default_plan = SubscriptionPlan.objects.create(
+                    name="Plan Standard",
+                    price=9.99,
+                    duration_days=30,
+                    description="Abonnement mensuel standard"
+                )
+            
+            # Créer l'abonnement
+            subscription = UserSubscription.objects.create(
+                user=user,
+                plan=default_plan,
+                is_active=True,
+                start_date=timezone.now(),
+                end_date=timezone.now() + timedelta(days=default_plan.duration_days)
+            )
+            
+            messages.success(request, f"Abonnement activé pour {user.username}")
+        except Exception as e:
+            logger.error(f"Erreur lors de l'activation de l'abonnement: {str(e)}")
+            messages.error(request, "Erreur lors de l'activation de l'abonnement")
+            
+        return redirect('user_detail', user_id=user_id)
+    
+    return render(request, 'administa/confirm_action.html', {
+        'object': user,
+        'object_type': 'utilisateur',
+        'action': 'activer l\'abonnement pour'
+    })
+
+@user_passes_test(is_admin)
+def deactivate_user_subscription(request, user_id):
+    """Désactive l'abonnement d'un utilisateur"""
+    user = get_object_or_404(User, id=user_id)
+    
+    if request.method == 'POST':
+        try:
+            # Désactiver l'abonnement actif
+            subscription = UserSubscription.objects.filter(
+                user=user, 
+                is_active=True
+            ).first()
+            
+            if subscription:
+                subscription.is_active = False
+                subscription.save()
+                messages.success(request, f"Abonnement désactivé pour {user.username}")
+            else:
+                messages.info(request, f"Aucun abonnement actif trouvé pour {user.username}")
+        except Exception as e:
+            logger.error(f"Erreur lors de la désactivation de l'abonnement: {str(e)}")
+            messages.error(request, "Erreur lors de la désactivation de l'abonnement")
+            
+        return redirect('user_detail', user_id=user_id)
+    
+    return render(request, 'administa/confirm_action.html', {
+        'object': user,
+        'object_type': 'utilisateur',
+        'action': 'désactiver l\'abonnement pour'
+    })
+
+# Vues pour la gestion des abonnements
+@user_passes_test(is_admin)
+def admin_subscriptions(request):
+    subscriptions = UserSubscription.objects.all().select_related('user', 'plan').order_by('-start_date')
+    
+    query = request.GET.get('q')
+    if query:
+        subscriptions = subscriptions.filter(
+            Q(user__username__icontains=query) | 
+            Q(plan__name__icontains=query)
+        )
+    
+    # Ajouter les jours restants
+    for subscription in subscriptions:
+        subscription.days_remaining = (subscription.end_date - timezone.now().date()).days
+    
+    paginator = Paginator(subscriptions, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'administa/subscriptions.html', {
+        'all_subscriptions': page_obj,
+        'page_obj': page_obj
+    })
+
+@user_passes_test(is_admin)
+def add_plan(request):
+    PlanForm = modelform_factory(SubscriptionPlan, fields='__all__')
+    
+    if request.method == 'POST':
+        form = PlanForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Plan d\'abonnement ajouté avec succès!')
+            return redirect('admin_subscriptions')
+    else:
+        form = PlanForm()
+    
+    return render(request, 'administa/plan_form.html', {'form': form, 'title': 'Ajouter un plan'})
+
+# ============================================
+# ☁️ GESTION CLOUDFLARE R2
+# ============================================
+
+def get_r2_client():
+    """Crée et retourne un client R2"""
+    return boto3.client(
+        's3',
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+        region_name=settings.AWS_S3_REGION_NAME or 'auto'
+    )
+
+def upload_to_r2(file_path, key):
+    """Télécharge un fichier vers Cloudflare R2"""
+    try:
+        r2_client = get_r2_client()
+        with open(file_path, 'rb') as file:
+            r2_client.upload_fileobj(
+                file,
+                settings.AWS_STORAGE_BUCKET_NAME,
+                key
+            )
+        return True
+    except Exception as e:
+        logger.error(f"Erreur lors de l'upload vers R2: {str(e)}")
+        return False
+
+def check_file_exists_r2(key):
+    """Vérifie si un fichier existe dans R2"""
+    try:
+        r2_client = get_r2_client()
+        r2_client.head_object(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key=key
+        )
+        return True
+    except ClientError as e:
+        if e.response['Error']['Code'] == '404':
+            return False
+        else:
+            logger.error(f"Erreur lors de la vérification du fichier dans R2: {str(e)}")
+            return False
+
+@user_passes_test(is_admin)
+def sync_video_to_r2(request, video_id):
+    """Synchronise une vidéo vers Cloudflare R2"""
+    video = get_object_or_404(Video, id=video_id)
+    
+    if request.method == 'POST':
+        try:
+            # Vérifier si le fichier vidéo existe
+            if video.video and video.video.path:
+                # Générer la clé R2
+                key = f"videos/{video.id}/{video.video.name.split('/')[-1]}"
+                
+                # Vérifier si le fichier existe déjà dans R2
+                if check_file_exists_r2(key):
+                    messages.info(request, f"La vidéo {video.title} est déjà synchronisée avec R2.")
+                else:
+                    # Télécharger vers R2
+                    if upload_to_r2(video.video.path, key):
+                        messages.success(request, f"La vidéo {video.title} a été synchronisée avec succès vers R2.")
+                    else:
+                        messages.error(request, f"Erreur lors de la synchronisation de la vidéo {video.title} vers R2.")
+            else:
+                messages.error(request, f"La vidéo {video.title} n'a pas de fichier associé.")
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la synchronisation de la vidéo {video.title}: {str(e)}")
+            messages.error(request, f"Erreur lors de la synchronisation de la vidéo {video.title}.")
+            
+        return redirect('admin_videos')
+    
+    return render(request, 'administa/confirm_sync.html', {
+        'object': video,
+        'object_type': 'vidéo',
+        'action': 'synchroniser avec Cloudflare R2'
+    })
+
+@user_passes_test(is_admin)
+def sync_photo_to_r2(request, photo_id):
+    """Synchronise une photo vers Cloudflare R2"""
+    photo = get_object_or_404(Photo, id=photo_id)
+    
+    if request.method == 'POST':
+        try:
+            # Vérifier si le fichier image existe
+            if photo.image and photo.image.path:
+                # Générer la clé R2
+                key = f"photos/{photo.id}/{photo.image.name.split('/')[-1]}"
+                
+                # Vérifier si le fichier existe déjà dans R2
+                if check_file_exists_r2(key):
+                    messages.info(request, f"La photo {photo.title} est déjà synchronisée avec R2.")
+                else:
+                    # Télécharger vers R2
+                    if upload_to_r2(photo.image.path, key):
+                        messages.success(request, f"La photo {photo.title} a été synchronisée avec succès vers R2.")
+                    else:
+                        messages.error(request, f"Erreur lors de la synchronisation de la photo {photo.title} vers R2.")
+            else:
+                messages.error(request, f"La photo {photo.title} n'a pas de fichier associé.")
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la synchronisation de la photo {photo.title}: {str(e)}")
+            messages.error(request, f"Erreur lors de la synchronisation de la photo {photo.title}.")
+            
+        return redirect('admin_photos')
+    
+    return render(request, 'administa/confirm_sync.html', {
+        'object': photo,
+        'object_type': 'photo',
+        'action': 'synchroniser avec Cloudflare R2'
+    })
+
+@user_passes_test(is_admin)
+def sync_all_videos_to_r2(request):
+    """Synchronise toutes les vidéos vers Cloudflare R2"""
+    if request.method == 'POST':
+        try:
+            videos = Video.objects.all()
+            synced_count = 0
+            error_count = 0
+            
+            for video in videos:
+                try:
+                    if video.video and video.video.path:
+                        key = f"videos/{video.id}/{video.video.name.split('/')[-1]}"
+                        
+                        # Vérifier si le fichier existe déjà dans R2
+                        if not check_file_exists_r2(key):
+                            if upload_to_r2(video.video.path, key):
+                                synced_count += 1
+                            else:
+                                error_count += 1
+                except Exception as e:
+                    logger.error(f"Erreur lors de la synchronisation de la vidéo {video.title}: {str(e)}")
+                    error_count += 1
+            
+            messages.success(request, f"Synchronisation terminée: {synced_count} vidéos synchronisées, {error_count} erreurs.")
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de la synchronisation de toutes les vidéos: {str(e)}")
+            messages.error(request, "Erreur lors de la synchronisation des vidéos.")
+            
+        return redirect('admin_videos')
+    
+    return render(request, 'administa/sync_progress.html', {
+        'object_type': 'vidéos',
+        'action': 'synchroniser toutes les vidéos avec Cloudflare R2'
+    })
+
+@user_passes_test(is_admin)
+def sync_all_photos_to_r2(request):
+    """Synchronise toutes les photos vers Cloudflare R2"""
+    if request.method == 'POST':
+        try:
+            photos = Photo.objects.all()
+            synced_count = 0
+            error_count = 0
+            
+            for photo in photos:
+                try:
+                    if photo.image and photo.image.path:
+                        key = f"photos/{photo.id}/{photo.image.name.split('/')[-1]}"
+                        
+                        # Vérifier si le fichier existe déjà dans R2
+                        if not check_file_exists_r2(key):
+                            if upload_to_r2(photo.image.path, key):
+                                synced_count += 1
+                            else:
+                                error_count += 1
+                except Exception as e:
+                    logger.error(f"Erreur lors de la synchronisation de la photo {photo.title}: {str(e)}")
+                    error_count += 1
+            
+            messages.success(request, f"Synchronisation terminée: {synced_count} photos synchronisées, {error_count} erreurs.")
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de la synchronisation de toutes les photos: {str(e)}")
+            messages.error(request, "Erreur lors de la synchronisation des photos.")
+            
+        return redirect('admin_photos')
+    
+    return render(request, 'administa/sync_progress.html', {
+        'object_type': 'photos',
+        'action': 'synchroniser toutes les photos avec Cloudflare R2'
+    })
