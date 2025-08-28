@@ -142,7 +142,7 @@ STORAGES = {
         "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
         "OPTIONS": {
             "location": "static",
-            "file_overwrite": False,
+            "file_overwrite": True,
         },
     },
 }
