@@ -35,7 +35,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'widget_tweaks',
     'storages',
-    'paypal.standard.ipn'
+    'paypal.standard.ipn',
+    'background_task'
 ]
 
 # === MIDDLEWARE ===

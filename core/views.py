@@ -151,10 +151,11 @@ from django.contrib.contenttypes.models import ContentType
 def add_comment(request, content_type, object_id):
     try:
         # Vérification d'abonnement
-        if not UserSubscription.objects.filter(user=request.user, is_active=True).exists():
+        user_subscription = UserSubscription.objects.filter(user=request.user, is_active=True).first()
+        if not user_subscription or not user_subscription.is_subscribed:
             return JsonResponse({
                 'error': 'subscription_required',
-                'message': 'Vous devez être abonné pour commenter'
+                'message': 'Vous devez être abonné pour ajouter un commentaire. Veuillez vous abonner pour débloquer cette fonctionnalité.'
             }, status=403)
 
         # Récupération du contenu
@@ -1140,3 +1141,108 @@ def sync_all_photos_to_r2(request):
         'object_type': 'photos',
         'action': 'synchroniser toutes les photos avec Cloudflare R2'
     })
+
+
+# ============================================
+# 🎬 UPLOAD DE VIDÉOS AVEC PROGRESSION
+# ============================================
+
+@login_required
+@user_passes_test(is_admin)
+def upload_video_with_progress(request):
+    """
+    Vue pour uploader une vidéo avec suivi de la progression
+    """
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        video_file = request.FILES.get('video')
+        cover_image = request.FILES.get('cover')
+        
+        if not title:
+            messages.error(request, "Le titre est requis.")
+            return render(request, 'administa/upload_video.html')
+        
+        if not video_file:
+            messages.error(request, "La vidéo est requise.")
+            return render(request, 'administa/upload_video.html')
+        
+        try:
+            # Création de l'objet vidéo
+            video = Video.objects.create(
+                title=title,
+                description=description,
+                video=video_file,
+                cover_film=cover_image
+            )
+            
+            # Création de l'objet de suivi d'upload
+            video_upload = VideoUpload.objects.create(
+                video=video,
+                status='pending'
+            )
+            
+            # Démarrage de la tâche asynchrone d'upload vers R2
+            from .tasks import upload_video_to_r2
+            upload_video_to_r2(video.id)
+            
+            messages.success(request, "L'upload de la vidéo a commencé. Vous pouvez suivre la progression.")
+            return redirect('video_upload_progress', video_id=video.id)
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'upload de la vidéo: {str(e)}")
+            messages.error(request, f"Erreur lors de l'upload de la vidéo: {str(e)}")
+            return render(request, 'administa/upload_video.html')
+    
+    return render(request, 'administa/upload_video.html')
+
+
+@login_required
+@user_passes_test(is_admin)
+def video_upload_progress(request, video_id):
+    """
+    Vue pour afficher la progression de l'upload d'une vidéo
+    """
+    video = get_object_or_404(Video, id=video_id)
+    try:
+        video_upload = video.upload
+    except VideoUpload.DoesNotExist:
+        # Si l'objet n'existe pas encore, on le crée
+        video_upload = VideoUpload.objects.create(video=video, status='pending')
+    
+    return render(request, 'administa/video_upload_progress.html', {
+        'video': video,
+        'video_upload': video_upload
+    })
+
+
+@login_required
+@user_passes_test(is_admin)
+def get_video_upload_progress(request, video_id):
+    """
+    API pour récupérer la progression de l'upload d'une vidéo
+    """
+    video = get_object_or_404(Video, id=video_id)
+    try:
+        video_upload = video.upload
+        return JsonResponse({
+            'status': video_upload.status,
+            'progress_percent': video_upload.progress_percent,
+            'uploaded_bytes': video_upload.uploaded_bytes,
+            'total_bytes': video_upload.total_bytes,
+            'upload_speed': round(video_upload.upload_speed, 2),
+            'time_remaining': video_upload.time_remaining,
+            'time_elapsed': video_upload.time_elapsed
+        })
+    except VideoUpload.DoesNotExist:
+        # Création d'un objet VideoUpload si nécessaire
+        video_upload = VideoUpload.objects.create(video=video, status='pending')
+        return JsonResponse({
+            'status': video_upload.status,
+            'progress_percent': video_upload.progress_percent,
+            'uploaded_bytes': video_upload.uploaded_bytes,
+            'total_bytes': video_upload.total_bytes,
+            'upload_speed': round(video_upload.upload_speed, 2),
+            'time_remaining': video_upload.time_remaining,
+            'time_elapsed': video_upload.time_elapsed
+        })

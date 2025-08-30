@@ -53,6 +53,9 @@ urlpatterns_administration = [
     path('admin/videos/delete/<int:video_id>/', delete_video, name='delete_video'),
     path('admin/videos/sync/<int:video_id>/', sync_video_to_r2, name='sync_video_to_r2'),
     path('admin/videos/sync-all/', sync_all_videos_to_r2, name='sync_all_videos_to_r2'),
+    path('admin/videos/upload/', upload_video_with_progress, name='upload_video_with_progress'),
+    path('admin/videos/upload/<int:video_id>/progress/', video_upload_progress, name='video_upload_progress'),
+    path('admin/videos/upload/<int:video_id>/progress/api/', get_video_upload_progress, name='get_video_upload_progress'),
 
     # --- Gestion des photos ---
     path('admin/photos/', admin_photos, name='admin_photos'),

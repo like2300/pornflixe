@@ -252,6 +252,57 @@ class Video(models.Model):
         else:
             return "maintenant"
 
+
+class VideoUpload(models.Model):
+    """
+    Modèle pour suivre la progression des uploads de vidéos vers Cloudflare R2
+    """
+    STATUS_CHOICES = [
+        ('pending', 'En attente'),
+        ('uploading', 'En cours d\'upload'),
+        ('completed', 'Terminé'),
+        ('failed', 'Échoué'),
+    ]
+    
+    video = models.OneToOneField(Video, on_delete=models.CASCADE, related_name='upload')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    progress_percent = models.PositiveIntegerField(default=0)
+    uploaded_bytes = models.BigIntegerField(default=0)
+    total_bytes = models.BigIntegerField(default=0)
+    upload_speed = models.FloatField(default=0.0)  # En MB/s
+    time_remaining = models.PositiveIntegerField(default=0)  # En secondes
+    time_elapsed = models.PositiveIntegerField(default=0)  # En secondes
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Upload de {self.video.title} - {self.status}"
+    
+    def update_progress(self, uploaded_bytes, total_bytes, time_elapsed):
+        """
+        Met à jour la progression de l'upload
+        """
+        self.uploaded_bytes = uploaded_bytes
+        self.total_bytes = total_bytes
+        self.progress_percent = int((uploaded_bytes / total_bytes) * 100) if total_bytes > 0 else 0
+        self.time_elapsed = time_elapsed
+        
+        # Calcul de la vitesse (en MB/s) - moyenne sur les 5 dernières secondes
+        if time_elapsed > 0:
+            self.upload_speed = (uploaded_bytes / (1024 * 1024)) / time_elapsed
+        
+        # Estimation du temps restant (en secondes)
+        if self.upload_speed > 0 and self.progress_percent < 100:
+            remaining_bytes = total_bytes - uploaded_bytes
+            self.time_remaining = int(remaining_bytes / (self.upload_speed * 1024 * 1024))
+        else:
+            self.time_remaining = 0
+            
+        self.save(update_fields=[
+            'uploaded_bytes', 'total_bytes', 'progress_percent', 
+            'upload_speed', 'time_remaining', 'time_elapsed'
+        ])
+
 class Photo(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True)
     image = models.ImageField(upload_to='photos/gallery/')
