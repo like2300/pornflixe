@@ -1,0 +1,289 @@
+{% extends "administa/base_admin.html" %}
+
+{% block page_title %}Upload Direct de Vidéo{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto p-6">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6">Upload Direct de Vidéo vers Cloudflare R2</h1>
+        
+        <form id="uploadForm" class="space-y-4">
+            <div class="form-group">
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Titre de la vidéo</label>
+                <input type="text" id="title" name="title" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div class="form-group">
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea id="description" name="description" rows="3"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="videoFile" class="block text-sm font-medium text-gray-700 mb-1">Fichier vidéo</label>
+                <input type="file" id="videoFile" name="videoFile" accept="video/*" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div class="form-group">
+                <button type="button" id="uploadBtn" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    Commencer l'Upload
+                </button>
+            </div>
+        </form>
+        
+        <!-- Progress Bar -->
+        <div id="progressContainer" class="mt-6 hidden">
+            <div class="flex justify-between text-sm text-gray-600 mb-1">
+                <span id="progressText">0%</span>
+                <span id="progressSpeed">0 MB/s</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div class="text-xs text-gray-500 mt-1 text-center" id="progressDetails"></div>
+        </div>
+        
+        <!-- Status Message -->
+        <div id="statusMessage" class="mt-4 hidden p-3 rounded-md"></div>
+    </div>
+</div>
+
+<style>
+.hidden {
+    display: none;
+}
+</style>
+
+<script>
+class DirectVideoUploader {
+    constructor() {
+        this.file = null;
+        this.uploadUrl = null;
+        this.fileKey = null;
+        this.publicUrl = null;
+        this.startTime = null;
+        this.uploadedBytes = 0;
+        this.totalBytes = 0;
+        
+        this.initializeEventListeners();
+    }
+    
+    initializeEventListeners() {
+        document.getElementById('uploadBtn').addEventListener('click', () => this.handleUpload());
+        document.getElementById('videoFile').addEventListener('change', (e) => this.handleFileSelect(e));
+    }
+    
+    handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            if (!file.type.startsWith('video/')) {
+                this.showMessage('Veuillez sélectionner un fichier vidéo valide.', 'error');
+                return;
+            }
+            this.file = file;
+            this.hideMessage();
+        }
+    }
+    
+    async handleUpload() {
+        const title = document.getElementById('title').value;
+        const description = document.getElementById('description').value;
+        
+        if (!title) {
+            this.showMessage('Veuillez entrer un titre pour la vidéo.', 'error');
+            return;
+        }
+        
+        if (!this.file) {
+            this.showMessage('Veuillez sélectionner un fichier vidéo.', 'error');
+            return;
+        }
+        
+        try {
+            // Step 1: Get presigned URL
+            this.showMessage('Génération de l\'URL de téléchargement...', 'info');
+            await this.getPresignedUrl();
+            
+            // Step 2: Upload file directly to R2
+            this.showMessage('Upload en cours...', 'info');
+            await this.uploadToR2();
+            
+            // Step 3: Save metadata
+            this.showMessage('Enregistrement des métadonnées...', 'info');
+            await this.saveMetadata(title, description);
+            
+            this.showMessage('Upload terminé avec succès!', 'success');
+        } catch (error) {
+            console.error('Upload error:', error);
+            this.showMessage(`Erreur: ${error.message}`, 'error');
+        }
+    }
+    
+    async getPresignedUrl() {
+        const response = await fetch(`/api/generate-presigned-url/?filename=${encodeURIComponent(this.file.name)}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to generate presigned URL');
+        }
+        
+        this.uploadUrl = data.presigned_url;
+        this.fileKey = data.file_key;
+        this.publicUrl = data.public_url;
+    }
+    
+    async uploadToR2() {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            
+            // Show progress container
+            document.getElementById('progressContainer').classList.remove('hidden');
+            
+            // Track upload progress
+            xhr.upload.addEventListener('progress', (event) => {
+                if (event.lengthComputable) {
+                    this.updateProgress(event.loaded, event.total);
+                }
+            });
+            
+            // Handle completion
+            xhr.addEventListener('load', () => {
+                if (xhr.status === 200) {
+                    resolve();
+                } else {
+                    reject(new Error(`Upload failed with status ${xhr.status}`));
+                }
+            });
+            
+            // Handle errors
+            xhr.addEventListener('error', () => {
+                reject(new Error('Network error during upload'));
+            });
+            
+            xhr.addEventListener('abort', () => {
+                reject(new Error('Upload aborted'));
+            });
+            
+            // Configure and send request
+            xhr.open('PUT', this.uploadUrl, true);
+            xhr.setRequestHeader('Content-Type', this.file.type);
+            xhr.send(this.file);
+            
+            // Record start time for speed calculation
+            this.startTime = new Date().getTime();
+            this.totalBytes = this.file.size;
+        });
+    }
+    
+    updateProgress(loaded, total) {
+        const percent = Math.round((loaded / total) * 100);
+        const elapsed = (new Date().getTime() - this.startTime) / 1000; // seconds
+        const speed = loaded / (1024 * 1024) / elapsed; // MB/s
+        
+        // Update UI
+        document.getElementById('progressBar').style.width = `${percent}%`;
+        document.getElementById('progressText').textContent = `${percent}%`;
+        document.getElementById('progressSpeed').textContent = `${speed.toFixed(2)} MB/s`;
+        document.getElementById('progressDetails').textContent = 
+            `${this.formatBytes(loaded)} / ${this.formatBytes(total)}`;
+    }
+    
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    async saveMetadata(title, description) {
+        const response = await fetch('/api/save-video-metadata/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': this.getCSRFToken() || this.getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                title: title,
+                description: description,
+                file_key: this.fileKey,
+                public_url: this.publicUrl
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to save metadata');
+        }
+        
+        return data;
+    }
+    
+    getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Get CSRF token from meta tag as fallback
+    getCSRFToken() {
+        // First try to get from cookie
+        let token = this.getCookie('csrftoken');
+        if (!token) {
+            // Fallback to meta tag
+            const csrfMetaTag = document.querySelector('meta[name=csrf-token]');
+            if (csrfMetaTag) {
+                token = csrfMetaTag.getAttribute('content');
+            }
+        }
+        return token;
+    }
+    
+    showMessage(message, type) {
+        const messageEl = document.getElementById('statusMessage');
+        messageEl.classList.remove('hidden');
+        
+        // Clear existing classes
+        messageEl.classList.remove('bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-blue-100', 'text-blue-800');
+        
+        // Add appropriate classes based on message type
+        switch (type) {
+            case 'success':
+                messageEl.classList.add('bg-green-100', 'text-green-800');
+                break;
+            case 'error':
+                messageEl.classList.add('bg-red-100', 'text-red-800');
+                break;
+            case 'info':
+                messageEl.classList.add('bg-blue-100', 'text-blue-800');
+                break;
+        }
+        
+        messageEl.textContent = message;
+    }
+    
+    hideMessage() {
+        document.getElementById('statusMessage').classList.add('hidden');
+    }
+}
+
+// Initialize the uploader when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    new DirectVideoUploader();
+});
+</script>
+{% endblock %}

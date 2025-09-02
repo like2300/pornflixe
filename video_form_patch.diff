@@ -1,0 +1,138 @@
+diff --git a/core/templates/administa/video_form.html b/core/templates/administa/video_form.html
+index 1234567..89abcde 100644
+--- a/core/templates/administa/video_form.html
++++ b/core/templates/administa/video_form.html
+@@ -256,6 +256,14 @@
+         });
+         
+         // Handle completion
++        xhr.addEventListener('load', async function() {
++          if (xhr.status === 200) {
++            progressStatus.textContent = 'Enregistrement des métadonnées...';
++            
++            // Step 3: Save metadata to Django
++            try {
++              const metadataResponse = await fetch('/api/save-video-metadata/', {
++                method: 'POST',
+                 headers: {
+                   'Content-Type': 'application/json',
+                   'X-CSRFToken': getCSRFToken()
+@@ -293,11 +301,21 @@
+               resolve();
+               
+             } catch (error) {
+-              reject(new Error('Erreur lors de l\'enregistrement des métadonnées: ' + error.message));
++              reject(new Error('Erreur lors de l'enregistrement des métadonnées: ' + error.message));
+             }
+           } else {
+-            reject(new Error('Upload failed with status ' + xhr.status));
++            // If direct upload fails due to CORS, try proxy upload as fallback
++            if (xhr.status === 0 || xhr.status === 403) {
++              progressStatus.textContent = 'Tentative d'upload via proxy (contournement CORS)...';
++              tryProxyUpload(file, title, description, resolve, reject);
++            } else {
++              reject(new Error('Upload failed with status ' + xhr.status));
++            }
+           }
+         });
+         
+@@ -306,7 +324,10 @@
+         // Handle network errors
+         xhr.addEventListener('error', function() {
+-          reject(new Error('Erreur réseau pendant l\'upload. Veuillez vérifier votre connexion internet.'));
++          // If direct upload fails due to CORS, try proxy upload as fallback
++          progressStatus.textContent = 'Tentative d'upload via proxy (contournement CORS)...';
++          tryProxyUpload(file, title, description, resolve, reject);
+         });
+         
+         // Handle timeout
+@@ -333,11 +354,7 @@
+         // Add custom headers if needed
+         try {
+           xhr.send(file);
+-        } catch (sendError) {
+-          reject(new Error('Erreur lors de l\'envoi du fichier: ' + sendError.message));
++        } catch (sendError) {
++          // If direct upload fails due to CORS, try proxy upload as fallback
++          progressStatus.textContent = 'Tentative d'upload via proxy (contournement CORS)...';
++          tryProxyUpload(file, title, description, resolve, reject);
+         }
+       });
+       
+@@ -347,6 +364,100 @@
+     }
+   }
+   
++  async function tryProxyUpload(file, title, description, resolve, reject) {
++    const progressStatus = document.getElementById('progressStatus');
++    const progressBar = document.getElementById('progressBar');
++    const progressText = document.getElementById('progressText');
++    const progressDetails = document.getElementById('progressDetails');
++    
++    try {
++      progressStatus.textContent = 'Upload via proxy en cours...';
++      
++      // Create FormData for proxy upload
++      const formData = new FormData();
++      formData.append('file', file);
++      formData.append('filename', file.name);
++      formData.append('type', 'video');
++      formData.append('title', title);
++      formData.append('description', description);
++      
++      // Upload via proxy endpoint
++      const proxyResponse = await fetch('/api/proxy-upload-to-r2/', {
++        method: 'POST',
++        body: formData,
++        headers: {
++          'X-CSRFToken': getCSRFToken()
++        }
++      });
++      
++      const proxyData = await proxyResponse.json();
++      
++      if (!proxyResponse.ok) {
++        throw new Error(proxyData.error || 'Failed to upload via proxy');
++      }
++      
++      progressStatus.textContent = 'Enregistrement des métadonnées...';
++      progressText.textContent = '100%';
++      progressBar.style.width = '100%';
++      progressDetails.textContent = 'Vidéo enregistrée avec succès';
++      
++      // Save metadata to Django
++      const metadataResponse = await fetch('/api/save-video-metadata/', {
++        method: 'POST',
++        headers: {
++          'Content-Type': 'application/json',
++          'X-CSRFToken': getCSRFToken()
++        },
++        body: JSON.stringify({
++          title: title,
++          description: description,
++          file_key: proxyData.file_key,
++          public_url: proxyData.public_url
++        })
++      });
++      
++      const metadataData = await metadataResponse.json();
++      
++      if (!metadataResponse.ok) {
++        throw new Error(metadataData.error || 'Failed to save metadata');
++      }
++      
++      progressStatus.textContent = 'Upload terminé avec succès!';
++      setTimeout(() => {
++        window.location.href = '{% url "admin_videos" %}';
++      }, 2000);
++      
++      resolve();
++      
++    } catch (error) {
++      reject(new Error('Échec de l'upload via proxy: ' + error.message));
++    }
++  }
++  
+   function getCSRFToken() {
+     // Get CSRF token from cookie
+     let cookieValue = null;

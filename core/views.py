@@ -1246,3 +1246,220 @@ def get_video_upload_progress(request, video_id):
             'time_remaining': video_upload.time_remaining,
             'time_elapsed': video_upload.time_elapsed
         })
+
+
+import boto3
+import json
+import os
+import uuid
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from botocore.exceptions import ClientError
+from .models import Video, Photo
+
+# Initialize R2 client
+def get_r2_client():
+    return boto3.client(
+        's3',
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+        region_name=settings.AWS_S3_REGION_NAME
+    )
+
+@require_http_methods(["GET"])
+@login_required
+def generate_presigned_url(request):
+    """
+    Generate a presigned URL for direct upload to Cloudflare R2
+    """
+    try:
+        # Get filename from query parameters
+        filename = request.GET.get('filename')
+        content_type = request.GET.get('type', 'video')  # 'video' or 'photo'
+        
+        if not filename:
+            return JsonResponse({'error': 'Filename is required'}, status=400)
+        
+        # Generate unique key for the file
+        file_extension = os.path.splitext(filename)[1]
+        folder = 'videos' if content_type == 'video' else 'photos'
+        unique_key = f"{folder}/{uuid.uuid4()}{file_extension}"
+        
+        # Create presigned URL for upload
+        r2_client = get_r2_client()
+        presigned_url = r2_client.generate_presigned_url(
+            'put_object',
+            Params={
+                'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
+                'Key': unique_key,
+                'ContentType': 'application/octet-stream'
+            },
+            ExpiresIn=3600,  # URL expires in 1 hour
+            HttpMethod='PUT'
+        )
+        
+        # Construct public URL
+        if settings.AWS_S3_CUSTOM_DOMAIN:
+            public_url = f"https://{settings.AWS_S3_CUSTOM_DOMAIN}/{unique_key}"
+        else:
+            public_url = f"{settings.AWS_S3_ENDPOINT_URL}/{settings.AWS_STORAGE_BUCKET_NAME}/{unique_key}"
+        
+        return JsonResponse({
+            'success': True,
+            'presigned_url': presigned_url,
+            'file_key': unique_key,
+            'public_url': public_url
+        })
+        
+    except ClientError as e:
+        logger.error(f"R2 Client Error: {str(e)}")
+        return JsonResponse({'error': f'Failed to generate presigned URL: {str(e)}'}, status=500)
+    except Exception as e:
+        logger.error(f"Unexpected Error: {str(e)}")
+        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+
+@require_http_methods(["POST"])
+@login_required
+@csrf_exempt
+def save_video_metadata(request):
+    """
+    Save video metadata after successful upload to R2
+    """
+    try:
+        data = json.loads(request.body)
+        
+        # Validation des champs requis
+        required_fields = ['title', 'file_key', 'public_url']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return JsonResponse({'error': f'Missing required field: {field}'}, status=400)
+        
+        # Création de la vidéo
+        video = Video.objects.create(
+            title=data['title'],
+            description=data.get('description', ''),
+            duration=data.get('duration'),
+            release_year=data.get('release_year'),
+            is_premium=data.get('is_premium', False),
+            video_url=data['public_url']
+        )
+        
+        # Ajout des types et genres
+        if 'types' in data:
+            video.types.set(data['types'])
+        if 'genre' in data:
+            video.genre.set(data['genre'])
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Video metadata saved successfully',
+            'video_id': video.id
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        logger.error(f"Failed to save video metadata: {str(e)}")
+        return JsonResponse({'error': f'Failed to save video metadata: {str(e)}'}, status=500)
+
+
+@require_http_methods(["POST"])
+@login_required
+@csrf_exempt
+def save_photo_metadata(request):
+    """
+    Save photo metadata after successful upload to R2
+    """
+    try:
+        data = json.loads(request.body)
+        title = data.get('title')
+        description = data.get('description')
+        file_key = data.get('file_key')
+        public_url = data.get('public_url')
+        
+        if not all([title, file_key, public_url]):
+            return JsonResponse({'error': 'Missing required fields'}, status=400)
+        
+        # Save the metadata to your database
+        photo = Photo.objects.create(
+            title=title,
+            description=description,
+            image_url=public_url,  # Using image_url field to store the URL
+            file_key=file_key
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Photo metadata saved successfully',
+            'photo_id': photo.id,
+            'photo_data': {
+                'title': title,
+                'description': description,
+                'file_key': file_key,
+                'public_url': public_url
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to save photo metadata: {str(e)}'}, status=500)
+
+
+@require_http_methods(["POST"])
+@login_required
+@csrf_exempt
+def proxy_upload_to_r2(request):
+    """
+    Proxy endpoint to upload files to R2 when direct upload fails due to CORS
+    """
+    try:
+        # Get the file from the request
+        if 'file' not in request.FILES:
+            return JsonResponse({'error': 'No file provided'}, status=400)
+        
+        file = request.FILES['file']
+        filename = request.POST.get('filename', file.name)
+        content_type = request.POST.get('type', 'video')  # 'video' or 'photo'
+        
+        # Generate unique key for the file
+        file_extension = os.path.splitext(filename)[1]
+        folder = 'videos' if content_type == 'video' else 'photos'
+        unique_key = f"{folder}/{uuid.uuid4()}{file_extension}"
+        
+        # Upload file to R2 through the proxy
+        r2_client = get_r2_client()
+        r2_client.upload_fileobj(
+            file,
+            settings.AWS_STORAGE_BUCKET_NAME,
+            unique_key
+        )
+        
+        # Construct public URL
+        if settings.AWS_S3_CUSTOM_DOMAIN:
+            public_url = f"https://{settings.AWS_S3_CUSTOM_DOMAIN}/{unique_key}"
+        else:
+            public_url = f"{settings.AWS_S3_ENDPOINT_URL}/{settings.AWS_STORAGE_BUCKET_NAME}/{unique_key}"
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'File uploaded successfully via proxy',
+            'file_key': unique_key,
+            'public_url': public_url
+        })
+        
+    except ClientError as e:
+        return JsonResponse({'error': f'Failed to upload file to R2: {str(e)}'}, status=500)
+    except Exception as e:
+        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+
+def upload_video_page(request):
+    """
+    Render the upload video page
+    """
+    return render(request, 'administa/direct_upload.html')

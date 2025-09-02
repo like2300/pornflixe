@@ -83,4 +83,10 @@ urlpatterns = [
     path('subscription/', include(payment_urlpatterns)),
     path('support/contact/', contact_support, name='contact_support'),
     path('config/',  include(urlpatterns_administration)),
+     # ... existing URLs ...
+    path('api/generate-presigned-url/',  generate_presigned_url, name='generate_presigned_url'),
+    path('api/save-video-metadata/',  save_video_metadata, name='save_video_metadata'),
+    path('api/save-photo-metadata/',  save_photo_metadata, name='save_photo_metadata'),
+    path('api/proxy-upload-to-r2/',  proxy_upload_to_r2, name='proxy_upload_to_r2'),
+    path('upload-direct/', upload_video_page, name='upload_video_page'),
 ]

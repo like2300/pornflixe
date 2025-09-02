@@ -182,7 +182,6 @@ class Genre(models.Model):
     def __str__(self):
         return self.name
 
-
 class MediaType(models.Model):  
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
@@ -194,7 +193,9 @@ class Video(models.Model):
     title = models.CharField(max_length=255)
     cover_film = models.ImageField(upload_to='films/')
     description = models.TextField(blank=True, null=True)
-    video = models.FileField(upload_to='videos/film/')
+    video = models.FileField(upload_to='videos/film/', blank=True, null=True)  # For backward compatibility
+    video_url = models.URLField(blank=True, null=True)  # For R2 direct uploads
+    file_key = models.CharField(max_length=500, blank=True, null=True)  # R2 file key
     views = models.IntegerField(default=0)
     types = models.ManyToManyField(MediaType, related_name='films')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -229,9 +230,8 @@ class Video(models.Model):
     @property
     def is_synced_with_r2(self):
         """Vérifie si la vidéo est synchronisée avec Cloudflare R2"""
-        # Cette méthode sera implémentée plus tard avec la vérification réelle
-        # Pour l'instant, nous retournons False par défaut
-        return False
+        # For direct uploads, we consider it synced if we have a video_url
+        return bool(self.video_url)
 
     def get_time_ago(self):
         now = timezone.now()
@@ -252,6 +252,10 @@ class Video(models.Model):
         else:
             return "maintenant"
 
+    @property
+    def video_file_url(self):
+        """Return the video URL, preferring the direct R2 URL if available"""
+        return self.video_url or (self.video.url if self.video else None)
 
 class VideoUpload(models.Model):
     """
@@ -305,7 +309,9 @@ class VideoUpload(models.Model):
 
 class Photo(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True)
-    image = models.ImageField(upload_to='photos/gallery/')
+    image = models.ImageField(upload_to='photos/gallery/', blank=True, null=True)  # For backward compatibility
+    image_url = models.URLField(blank=True, null=True)  # For R2 direct uploads
+    file_key = models.CharField(max_length=500, blank=True, null=True)  # R2 file key
     description = models.TextField(blank=True, null=True)
     like = models.ManyToManyField(User, related_name='liked_photos', blank=True)
     types = models.ManyToManyField(MediaType, related_name='photos')
@@ -340,9 +346,8 @@ class Photo(models.Model):
     @property
     def is_synced_with_r2(self):
         """Vérifie si la photo est synchronisée avec Cloudflare R2"""
-        # Cette méthode sera implémentée plus tard avec la vérification réelle
-        # Pour l'instant, nous retournons False par défaut
-        return False
+        # For direct uploads, we consider it synced if we have an image_url
+        return bool(self.image_url or self.file_key)
 
     def get_time_ago(self):
         now = timezone.now()
@@ -363,7 +368,10 @@ class Photo(models.Model):
         else:
             return "maintenant"
 
-
+    @property
+    def image_file_url(self):
+        """Return the image URL, preferring the direct R2 URL if available"""
+        return self.image_url or (self.image.url if self.image else None)
 
 class Slide(models.Model):
     film = models.ForeignKey(Video, on_delete=models.CASCADE)
