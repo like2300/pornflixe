@@ -14,85 +14,21 @@
       <form method="post" enctype="multipart/form-data" class="space-y-8" id="photoForm">
         {% csrf_token %}
         
-        <!-- Basic Information -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="space-y-2">
-            <label class="block text-sm font-semibold text-gray-700">Titre *</label>
-            <input type="text" name="title" value="{{ form.title.value|default:'' }}" required
-                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">
-          </div>
-          
-          <div class="space-y-2">
-            <label class="block text-sm font-semibold text-gray-700">Types</label>
-            <select name="types" multiple 
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">
-              {% for choice in form.types.field.choices %}
-                <option value="{{ choice.0 }}" {% if choice.0 in form.types.value %}selected{% endif %}>{{ choice.1 }}</option>
-              {% endfor %}
-            </select>
-          </div>
+        <div class="space-y-2">
+          <label for="photoTitle" class="block text-sm font-semibold text-gray-700">Titre *</label>
+          <input type="text" name="title" id="photoTitle" value="{{ form.title.value|default:'' }}" required
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">
         </div>
         
         <div class="space-y-2">
-          <label class="block text-sm font-semibold text-gray-700">Description</label>
-          <textarea name="description" rows="4" 
+          <label for="photoDescription" class="block text-sm font-semibold text-gray-700">Description</label>
+          <textarea name="description" id="photoDescription" rows="4" 
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">{{ form.description.value|default:'' }}</textarea>
         </div>
         
-        <!-- Image Upload -->
         <div class="space-y-2">
-          <label class="block text-sm font-semibold text-gray-700">Image *</label>
-          <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
-            <div class="space-y-1 text-center">
-              <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-              <div class="flex text-sm text-gray-600">
-                <label class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500">
-                  <span>Uploader une image</span>
-                  <input type="file" name="image" id="imageFileInput" class="sr-only" accept="image/*" required>
-                </label>
-                <p class="pl-1">ou glisser-déposer</p>
-              </div>
-              <p class="text-xs text-gray-500">PNG, JPG, GIF jusqu'à 10MB</p>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Progress bar for image upload -->
-        <div id="uploadProgress" class="hidden">
-          <div class="mb-4">
-            <div class="flex justify-between text-sm font-medium text-gray-700 mb-2">
-              <span id="progressStatus">Initialisation de l'upload...</span>
-              <span id="progressText">0%</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-3">
-              <div id="progressBar" class="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
-            </div>
-            <div class="flex justify-between text-xs text-gray-500 mt-2">
-              <span id="progressSpeed">0 MB/s</span>
-              <span id="progressTimeRemaining">--</span>
-            </div>
-          </div>
-          <div class="text-center text-sm text-gray-600" id="progressDetails"></div>
-        </div>
-        
-        <!-- Genres -->
-        <div class="space-y-2">
-          <label class="block text-sm font-semibold text-gray-700">Genres</label>
-          <select name="genre" multiple 
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">
-            {% for choice in form.genre.field.choices %}
-              <option value="{{ choice.0 }}" {% if choice.0 in form.genre.value %}selected{% endif %}>{{ choice.1 }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        
-        <!-- Premium Content -->
-        <div class="flex items-center space-x-3">
-          <input type="checkbox" name="is_premium" id="is_premium" {% if form.is_premium.value %}checked{% endif %}
-                 class="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-          <label for="is_premium" class="block text-sm font-semibold text-gray-700">Contenu premium</label>
+          <label for="photoFileInput" class="block text-sm font-semibold text-gray-700">Fichier image *</label>
+          <input type="file" name="image" id="photoFileInput" class="w-full" accept="image/*" required>
         </div>
         
         <!-- Actions -->
@@ -100,7 +36,7 @@
           <a href="{% url 'admin_photos' %}" class="px-6 py-3 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors duration-200">
             Annuler
           </a>
-          <button type="submit" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 border border-transparent rounded-lg text-sm font-semibold text-white hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+          <button type="button" id="uploadButton" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 border border-transparent rounded-lg text-sm font-semibold text-white hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
             Enregistrer
           </button>
         </div>
@@ -112,172 +48,192 @@
 
 {% block extra_js %}
 <script>
-  document.getElementById('photoForm').addEventListener('submit', function(e) {
-    const imageInput = document.getElementById('imageFileInput');
-    if (imageInput && imageInput.files.length > 0) {
-      e.preventDefault();
-      uploadImageToR2(imageInput.files[0]);
+class DirectUploader {
+    constructor(options) {
+        this.options = options;
+        this.file = null;
+        this.startTime = null;
+
+        // Bind methods
+        this.handleFileSelect = this.handleFileSelect.bind(this);
+        this.startUpload = this.startUpload.bind(this);
+
+        // Initialize UI elements
+        this.ui = {
+            fileInput: document.getElementById(options.fileInputId),
+            uploadButton: document.getElementById(options.uploadButtonId),
+            overlay: document.getElementById('uploadOverlay'),
+            title: document.getElementById('uploadTitle'),
+            status: document.getElementById('uploadStatus'),
+            percentage: document.getElementById('uploadPercentage'),
+            progressBar: document.getElementById('uploadProgressBar'),
+            speed: document.getElementById('uploadSpeed'),
+            time: document.getElementById('uploadTime'),
+            details: document.getElementById('uploadDetails'),
+            successMessage: document.getElementById('uploadSuccessMessage'),
+            errorMessage: document.getElementById('uploadErrorMessage'),
+            errorText: document.getElementById('uploadErrorText'),
+        };
+
+        this.init();
     }
-  });
-  
-  async function uploadImageToR2(file) {
-    const uploadProgress = document.getElementById('uploadProgress');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-    const progressStatus = document.getElementById('progressStatus');
-    const progressSpeed = document.getElementById('progressSpeed');
-    const progressTimeRemaining = document.getElementById('progressTimeRemaining');
-    const progressDetails = document.getElementById('progressDetails');
-    
-    uploadProgress.classList.remove('hidden');
-    progressStatus.textContent = 'Préparation de l\\'upload...';
-    
-    try {
-      // Get form data
-      const title = document.querySelector('input[name="title"]').value || file.name;
-      const description = document.querySelector('textarea[name="description"]').value || '';
-      const isPremium = document.querySelector('input[name="is_premium"]').checked;
-      const types = Array.from(document.querySelector('select[name="types"]').selectedOptions).map(opt => opt.value);
-      const genres = Array.from(document.querySelector('select[name="genre"]').selectedOptions).map(opt => opt.value);
-      
-      // Step 1: Get presigned URL from Django
-      progressStatus.textContent = 'Génération de l\\'URL de téléchargement...';
-      const presignedResponse = await fetch(`/api/generate-presigned-url/?filename=${encodeURIComponent(file.name)}&type=photo`);
-      const presignedData = await presignedResponse.json();
-      
-      if (!presignedResponse.ok) {
-        throw new Error(presignedData.error || 'Failed to generate presigned URL');
-      }
-      
-      // Step 2: Upload file directly to R2 with progress tracking
-      progressStatus.textContent = 'Upload en cours...';
-      
-      return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
+
+    init() {
+        this.ui.fileInput.addEventListener('change', this.handleFileSelect);
+        this.ui.uploadButton.addEventListener('click', this.startUpload);
+    }
+
+    handleFileSelect(e) {
+        this.file = e.target.files[0];
+        if (!this.file) {
+            this.showError('Veuillez sélectionner un fichier.');
+        }
+    }
+
+    showModal(title) {
+        this.ui.title.textContent = title;
+        this.ui.overlay.style.display = 'flex';
+        this.ui.successMessage.style.display = 'none';
+        this.ui.errorMessage.style.display = 'none';
+        this.updateProgress(0, 0, 0);
+    }
+
+    hideModal() {
+        this.ui.overlay.style.display = 'none';
+    }
+
+    showError(message) {
+        this.ui.status.textContent = 'Erreur';
+        this.ui.errorText.textContent = message;
+        this.ui.errorMessage.style.display = 'block';
+        this.ui.successMessage.style.display = 'none';
+        // Keep modal open for 5 seconds on error
+        setTimeout(() => this.hideModal(), 5000);
+    }
+
+    showSuccessAndRedirect(redirectUrl) {
+        this.ui.status.textContent = 'Terminé !';
+        this.ui.successMessage.style.display = 'block';
+        this.ui.errorMessage.style.display = 'none';
+        setTimeout(() => {
+            window.location.href = redirectUrl;
+        }, 2000);
+    }
+
+    updateProgress(loaded, total, elapsed) {
+        if (total === 0) {
+            this.ui.percentage.textContent = '0%';
+            this.ui.progressBar.style.width = '0%';
+            return;
+        }
+
+        const percent = Math.round((loaded / total) * 100);
+        const speed = loaded / (1024 * 1024) / elapsed; // MB/s
+        const remainingBytes = total - loaded;
+        const remainingTime = (remainingBytes / (speed * 1024 * 1024));
+
+        this.ui.percentage.textContent = `${percent}%`;
+        this.ui.progressBar.style.width = `${percent}%`;
+        this.ui.speed.textContent = `${speed.toFixed(2)} MB/s`;
+        this.ui.details.textContent = `${(loaded / 1024 / 1024).toFixed(2)} / ${(total / 1024 / 1024).toFixed(2)} MB`;
         
-        // Track upload progress
-        xhr.upload.addEventListener('progress', function(event) {
-          if (event.lengthComputable) {
-            const percentComplete = Math.round((event.loaded / event.total) * 100);
-            const loadedMB = (event.loaded / (1024 * 1024)).toFixed(2);
-            const totalMB = (event.total / (1024 * 1024)).toFixed(2);
-            const speedMBs = ((event.loaded / (1024 * 1024)) / ((event.timeStamp || Date.now()) / 1000)).toFixed(2);
-            
-            progressBar.style.width = percentComplete + '%';
-            progressText.textContent = percentComplete + '%';
-            progressSpeed.textContent = speedMBs + ' MB/s';
-            progressDetails.textContent = loadedMB + ' / ' + totalMB + ' MB';
-            
-            // Estimate time remaining
-            if (event.loaded > 0) {
-              const timeElapsed = (event.timeStamp || Date.now()) / 1000;
-              const estimatedTotalTime = (timeElapsed / event.loaded) * event.total;
-              const timeRemaining = estimatedTotalTime - timeElapsed;
-              const minutes = Math.floor(timeRemaining / 60);
-              const seconds = Math.floor(timeRemaining % 60);
-              progressTimeRemaining.textContent = minutes + 'm ' + seconds + 's restantes';
-            }
-          }
-        });
-        
-        // Handle completion
-        xhr.addEventListener('load', async function() {
-          if (xhr.status === 200) {
-            progressStatus.textContent = 'Enregistrement des métadonnées...';
-            
-            // Step 3: Save metadata to Django
-            try {
-              const metadataResponse = await fetch('/api/save-photo-metadata/', {
+        if (isFinite(remainingTime) && remainingTime > 0) {
+            const minutes = Math.floor(remainingTime / 60);
+            const seconds = Math.floor(remainingTime % 60);
+            this.ui.time.textContent = `${minutes}m ${seconds}s restantes`;
+        } else {
+            this.ui.time.textContent = '--';
+        }
+    }
+
+    async startUpload() {
+        if (!this.file) {
+            alert('Veuillez sélectionner un fichier à uploader.');
+            return;
+        }
+
+        this.showModal(`Upload de ${this.options.contentType}...`);
+
+        try {
+            // 1. Get Presigned URL
+            this.ui.status.textContent = 'Préparation de l\'upload...';
+            const presignedUrlResponse = await fetch(`/api/generate-presigned-url/?filename=${encodeURIComponent(this.file.name)}&type=${this.options.contentType.toLowerCase()}`);
+            if (!presignedUrlResponse.ok) throw new Error('Impossible de générer l\'URL de téléversement.');
+            const presignedData = await presignedUrlResponse.json();
+
+            // 2. Upload to R2
+            this.ui.status.textContent = 'Téléversement en cours...';
+            await this.uploadFile(presignedData.presigned_url);
+
+            // 3. Save Metadata
+            this.ui.status.textContent = 'Enregistrement des informations...';
+            const metadata = this.options.getMetadata();
+            metadata.file_key = presignedData.file_key;
+            metadata.public_url = presignedData.public_url;
+
+            const metadataResponse = await fetch(this.options.metadataUrl, {
                 method: 'POST',
                 headers: {
-                  'Content-Type': 'application/json',
-                  'X-CSRFToken': getCSRFToken()
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                 },
-                body: JSON.stringify({
-                  title: title,
-                  description: description,
-                  is_premium: isPremium,
-                  types: types,
-                  genre: genres,
-                  file_key: presignedData.file_key,
-                  public_url: presignedData.public_url
-                })
-              });
-              
-              const metadataData = await metadataResponse.json();
-              
-              if (!metadataResponse.ok) {
-                throw new Error(metadataData.error || 'Failed to save metadata');
-              }
-              
-              progressStatus.textContent = 'Upload terminé avec succès!';
-              progressText.textContent = '100%';
-              progressBar.style.width = '100%';
-              progressDetails.textContent = 'Photo enregistrée avec succès';
-              
-              // Show success message and redirect
-              setTimeout(() => {
-                window.location.href = '{% url "admin_photos" %}';
-              }, 2000);
-              
-              resolve();
-              
-            } catch (error) {
-              reject(new Error('Erreur lors de l\\'enregistrement des métadonnées: ' + error.message));
-            }
-          } else {
-            reject(new Error('Upload failed with status ' + xhr.status));
-          }
-        });
-        
-        // Handle network errors
-        xhr.addEventListener('error', function() {
-          reject(new Error('Erreur réseau pendant l\\'upload. Veuillez vérifier votre connexion internet.'));
-        });
-        
-        // Handle timeout
-        xhr.addEventListener('timeout', function() {
-          reject(new Error('Timeout pendant l\\'upload. Veuillez réessayer.'));
-        });
-        
-        // Handle abort
-        xhr.addEventListener('abort', function() {
-          reject(new Error('Upload annulé par l\\'utilisateur.'));
-        });
-        
-        // Configure and send request
-        xhr.open('PUT', presignedData.presigned_url, true);
-        xhr.timeout = 0; // Disable timeout for large files
-        xhr.setRequestHeader('Content-Type', file.type);
-        
-        try {
-          xhr.send(file);
-        } catch (sendError) {
-          reject(new Error('Erreur lors de l\\'envoi du fichier: ' + sendError.message));
+                body: JSON.stringify(metadata)
+            });
+
+            if (!metadataResponse.ok) throw new Error('Impossible d\'enregistrer les métadonnées.');
+            
+            this.showSuccessAndRedirect(this.options.redirectUrl);
+
+        } catch (error) {
+            console.error('Upload failed:', error);
+            this.showError(error.message);
         }
-      });
-      
-    } catch (error) {
-      progressStatus.textContent = 'Erreur: ' + error.message;
-      progressStatus.classList.add('text-red-600');
-      console.error('Upload error:', error);
     }
-  }
-  
-  function getCSRFToken() {
-    // Get CSRF token from cookie
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, 10) === ('csrftoken=')) {
-          cookieValue = decodeURIComponent(cookie.substring(10));
-          break;
+
+    uploadFile(url) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('PUT', url, true);
+            xhr.setRequestHeader('Content-Type', this.file.type);
+            this.startTime = Date.now();
+
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const elapsed = (Date.now() - this.startTime) / 1000;
+                    this.updateProgress(event.loaded, event.total, elapsed);
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    resolve();
+                } else {
+                    reject(new Error(`L'upload a échoué avec le statut ${xhr.status}`));
+                }
+            };
+
+            xhr.onerror = () => reject(new Error('Erreur réseau pendant l\'upload.'));
+            xhr.onabort = () => reject(new Error('Upload annulé.'));
+
+            xhr.send(this.file);
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    new DirectUploader({
+        fileInputId: 'photoFileInput',
+        uploadButtonId: 'uploadButton',
+        contentType: 'Photo',
+        metadataUrl: '/api/save-photo-metadata/',
+        redirectUrl: '{% url "admin_photos" %}',
+        getMetadata: () => {
+            return {
+                title: document.getElementById('photoTitle').value,
+                description: document.getElementById('photoDescription').value,
+            };
         }
-      }
-    }
-    return cookieValue;
-  }
+    });
+});
 </script>
 {% endblock %}

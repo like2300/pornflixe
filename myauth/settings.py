@@ -50,6 +50,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'core.middleware.SubscriptionMiddleware',
+    'core.middleware.UploadTimeoutMiddleware',
+
 ]
 
 FILE_UPLOAD_HANDLERS = [
@@ -131,7 +133,15 @@ AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
 AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
 AWS_S3_CUSTOM_DOMAIN = config('R2_CDN_DOMAIN', default='').replace('https://', '').replace('http://', '')
 AWS_S3_REGION_NAME = 'auto'  # Important pour R2
-AWS_QUERYSTRING_AUTH = False 
+AWS_QUERYSTRING_AUTH = False
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = 'public-read'
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',
+}
+AWS_S3_USE_SSL = True
+AWS_S3_VERIFY = True
+AWS_S3_ADDRESSING_STYLE = "virtual"
 
 # Configuration du stockage S3 pour les fichiers média
 class MediaStorage(S3Boto3Storage):
@@ -141,7 +151,9 @@ class MediaStorage(S3Boto3Storage):
 # Configuration du stockage S3 pour les fichiers statiques
 class StaticStorage(S3Boto3Storage):
     location = 'static'
-    file_overwrite = False
+    file_overwrite = True
+    default_acl = 'public-read'
+    querystring_auth = False
 
 # Configuration des stockages
 STORAGES = {
@@ -150,6 +162,8 @@ STORAGES = {
         "OPTIONS": {
             "location": "media",
             "file_overwrite": False,
+            "default_acl": "public-read",
+            "querystring_auth": False,
         },
     },
     "staticfiles": {
@@ -157,9 +171,21 @@ STORAGES = {
         "OPTIONS": {
             "location": "static",
             "file_overwrite": True,
+            "default_acl": "public-read",
+            "querystring_auth": False,
         },
     },
 }
+
+# Configuration des fichiers statiques
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
 
 # URLs pour les fichiers statiques et média
 STATIC_URL = f'{AWS_S3_CUSTOM_DOMAIN}/static/' if AWS_S3_CUSTOM_DOMAIN else f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/static/'
@@ -171,6 +197,29 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Augmentez la taille maximale des uploads (2GB)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2147483648  # 2GB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2147483648  # 2GB
+
+# Configuration pour les uploads
+FILE_UPLOAD_PERMISSIONS = 0o644
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
+FILE_UPLOAD_HANDLERS = [
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
+]
+FILE_UPLOAD_TEMP_DIR = None  # Utilisera le répertoire temporaire du système
+
+# Configuration pour les requêtes longues
+REQUEST_TIMEOUT = 7200  # 2 heures en secondes
+UPLOAD_CHUNK_SIZE = 5 * 1024 * 1024  # 5MB chunks
+CONN_MAX_AGE = 60  # Keep database connections alive
+
+# Configuration Gunicorn (pour la production)
+GUNICORN_TIMEOUT = 7200
+GUNICORN_WORKERS = 3
+GUNICORN_THREADS = 2
+
 
 # === PAYPAL CONFIGURATION ===
 PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID')
@@ -249,3 +298,11 @@ LOGGING = {
         },
     },
 }
+
+# === CELERY CONFIGURATION ===
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'

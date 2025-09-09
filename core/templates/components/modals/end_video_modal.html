@@ -10,8 +10,14 @@
             <h4 class="text-lg font-semibold text-white mb-3">Regardez ensuite</h4>
             <div class="group flex gap-3 items-center justify-center">
                 <div class="flex-shrink-0 relative w-32 h-20 rounded-lg overflow-hidden">
-                    <img src="{{ recommendations.0.cover_film.url }}" alt="{{ recommendations.0.title }}" 
-                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200">
+                    {% if recommendations.0.cover_film %}
+                        <img src="{{ recommendations.0.cover_film.url }}" alt="{{ recommendations.0.title }}" 
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200">
+                    {% else %}
+                        <div class="bg-gray-700 w-full h-full flex items-center justify-center">
+                            <i class="material-icons text-gray-500">image</i>
+                        </div>
+                    {% endif %}
                     <div class="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 rounded">
                         {{ recommendations.0.duration }}
                     </div>

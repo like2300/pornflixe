@@ -25,7 +25,13 @@ from .models import *
 from django.core.exceptions import PermissionDenied 
 # pagginator
 from django.core.paginator import Paginator
-
+import os
+import json
+import uuid
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from botocore.exceptions import ClientError
 # Pour Cloudflare R2
 import boto3
 from botocore.exceptions import ClientError
@@ -33,9 +39,9 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# ============================================
+# ============================================ 
 # 🧠 UTILITAIRES & MIXINS
-# ============================================
+# ============================================ 
 
 class BaseContextMixin(ContextMixin):
     """Ajoute les données communes à toutes les vues"""
@@ -74,9 +80,9 @@ def get_media_type(slug):
         logger.warning(f"MediaType not found: {slug}")
         return None
 
-# ============================================
+# ============================================ 
 # ❤️ INTERACTIONS UTILISATEUR
-# ============================================
+# ============================================ 
 
 def load_more_comments(request, content_type, content_id):
     offset = int(request.GET.get('offset', 0))
@@ -189,9 +195,9 @@ def add_comment(request, content_type, object_id):
         logger.error(f"Comment error: {str(e)}")
         return JsonResponse({'error': 'Une erreur est survenue'}, status=500)
 
-# ============================================
+# ============================================ 
 # 📺 PAGES DE CONTENU
-# ============================================
+# ============================================ 
 
 class ContentDetailView(BaseContextMixin, DetailView):
     """Vue générique pour les détails de contenu"""
@@ -312,7 +318,7 @@ def get_context_data(self, **kwargs):
             return same_type_videos[:6]
         except Exception as e:
             logger.error(f"Recommendation error: {str(e)}")
-            return Video.objects.none()
+            return Video.objects.none() 
             
 
 class HomeView(BaseContextMixin, TemplateView):
@@ -405,9 +411,9 @@ class SearchView(BaseContextMixin, TemplateView):
         
         return context
 
-# ============================================
+# ============================================ 
 # 👤 GESTION DE COMPTE
-# ============================================
+# ============================================ 
 
 class UsernameUpdateView(LoginRequiredMixin, BaseContextMixin, UpdateView):
     fields = ['username']
@@ -421,9 +427,9 @@ class UsernameUpdateView(LoginRequiredMixin, BaseContextMixin, UpdateView):
         messages.success(self.request, "Nom d'utilisateur mis à jour")
         return super().form_valid(form)
 
-# ============================================
+# ============================================ 
 # 💳 GESTION D'ABONNEMENT
-# ============================================
+# ============================================ 
 
 class SubscriptionView(BaseContextMixin, ListView):
     model = SubscriptionPlan
@@ -496,9 +502,9 @@ class SubscribeView(LoginRequiredMixin, BaseContextMixin, DetailView):
 class CancelView(BaseContextMixin, TemplateView):
     template_name = 'pages/dynamiquePages/payement/payment_cancel.html'
 
-# ============================================
+# ============================================ 
 # 🔔 SIGNAL PAYPAL IPN
-# ============================================
+# ============================================ 
 
 from paypal.standard.ipn.signals import valid_ipn_received
 from django.dispatch import receiver
@@ -609,8 +615,6 @@ def handle_paypal_ipn(sender, **kwargs):
 
 
 
-
-
 def is_admin(user):
     return user.is_staff or user.is_superuser
 
@@ -663,8 +667,6 @@ def admin_dashboard(request):
 
 
 
-
-
  
 # Vues pour la gestion des vidéos
 @user_passes_test(is_admin)
@@ -688,34 +690,67 @@ def admin_videos(request):
 
 @user_passes_test(is_admin)
 def add_video(request):
-    VideoForm = modelform_factory(Video, exclude=('created_at', 'views', 'favorites'))
-    
+    """
+    Handles both displaying the form for adding a new video and processing
+    the submitted form data (including the cover image and metadata from the direct upload).
+    """
+    VideoForm = modelform_factory(Video, exclude=('created_at', 'views', 'favorites', 'video'))
+
     if request.method == 'POST':
         form = VideoForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            video = form.save(commit=False)
+            # The video_url and file_key are submitted from hidden fields
+            # populated by the JavaScript uploader.
+            video.video_url = request.POST.get('video_url')
+            video.file_key = request.POST.get('file_key')
+            video.save()
+            form.save_m2m() # Save many-to-many relationships
             messages.success(request, 'Vidéo ajoutée avec succès!')
             return redirect('admin_videos')
+        else:
+            messages.error(request, "Veuillez corriger les erreurs ci-dessous.")
     else:
         form = VideoForm()
-    
-    return render(request, 'administa/video_form.html', {'form': form, 'title': 'Ajouter une vidéo'})
+
+    return render(request, 'administa/video_form.html', {
+        'form': form,
+        'title': 'Ajouter une vidéo'
+    })
 
 @user_passes_test(is_admin)
 def edit_video(request, video_id):
+    """
+    Handles both displaying the form for editing a video and processing
+    the submitted form data.
+    """
     video = get_object_or_404(Video, id=video_id)
-    VideoForm = modelform_factory(Video, exclude=('created_at', 'views', 'favorites'))
-    
+    VideoForm = modelform_factory(Video, exclude=('created_at', 'views', 'favorites', 'video'))
+
     if request.method == 'POST':
         form = VideoForm(request.POST, request.FILES, instance=video)
         if form.is_valid():
-            form.save()
+            edited_video = form.save(commit=False)
+            # If a new video was uploaded, the JS will have populated the hidden fields.
+            new_video_url = request.POST.get('video_url')
+            if new_video_url:
+                edited_video.video_url = new_video_url
+                edited_video.file_key = request.POST.get('file_key')
+            
+            edited_video.save()
+            form.save_m2m()
             messages.success(request, 'Vidéo modifiée avec succès!')
             return redirect('admin_videos')
+        else:
+            messages.error(request, "Veuillez corriger les erreurs ci-dessous.")
     else:
         form = VideoForm(instance=video)
-    
-    return render(request, 'administa/video_form.html', {'form': form, 'title': 'Modifier la vidéo'})
+
+    return render(request, 'administa/video_form.html', {
+        'form': form,
+        'video': video,
+        'title': 'Modifier la vidéo'
+    })
 
 @user_passes_test(is_admin)
 def delete_video(request, video_id):
@@ -951,9 +986,9 @@ def add_plan(request):
     
     return render(request, 'administa/plan_form.html', {'form': form, 'title': 'Ajouter un plan'})
 
-# ============================================
+# ============================================ 
 # ☁️ GESTION CLOUDFLARE R2
-# ============================================
+# ============================================ 
 
 def get_r2_client():
     """Crée et retourne un client R2"""
@@ -977,7 +1012,7 @@ def upload_to_r2(file_path, key):
             )
         return True
     except Exception as e:
-        logger.error(f"Erreur lors de l'upload vers R2: {str(e)}")
+        logger.error(f"Erreur lors de l\'upload vers R2: {str(e)}")
         return False
 
 def check_file_exists_r2(key):
@@ -1143,9 +1178,9 @@ def sync_all_photos_to_r2(request):
     })
 
 
-# ============================================
+# ============================================ 
 # 🎬 UPLOAD DE VIDÉOS AVEC PROGRESSION
-# ============================================
+# ============================================ 
 
 @login_required
 @user_passes_test(is_admin)
@@ -1186,12 +1221,12 @@ def upload_video_with_progress(request):
             from .tasks import upload_video_to_r2
             upload_video_to_r2(video.id)
             
-            messages.success(request, "L'upload de la vidéo a commencé. Vous pouvez suivre la progression.")
+            messages.success(request, "L\'upload de la vidéo a commencé. Vous pouvez suivre la progression.")
             return redirect('video_upload_progress', video_id=video.id)
             
         except Exception as e:
-            logger.error(f"Erreur lors de l'upload de la vidéo: {str(e)}")
-            messages.error(request, f"Erreur lors de l'upload de la vidéo: {str(e)}")
+            logger.error(f"Erreur lors de l\'upload de la vidéo: {str(e)}")
+            messages.error(request, f"Erreur lors de l\'upload de la vidéo: {str(e)}")
             return render(request, 'administa/upload_video.html')
     
     return render(request, 'administa/upload_video.html')
@@ -1201,13 +1236,13 @@ def upload_video_with_progress(request):
 @user_passes_test(is_admin)
 def video_upload_progress(request, video_id):
     """
-    Vue pour afficher la progression de l'upload d'une vidéo
+    Vue pour afficher la progression de l\'upload d\'une vidéo
     """
     video = get_object_or_404(Video, id=video_id)
     try:
         video_upload = video.upload
     except VideoUpload.DoesNotExist:
-        # Si l'objet n'existe pas encore, on le crée
+        # Si l\'objet n\'existe pas encore, on le crée
         video_upload = VideoUpload.objects.create(video=video, status='pending')
     
     return render(request, 'administa/video_upload_progress.html', {
@@ -1220,7 +1255,7 @@ def video_upload_progress(request, video_id):
 @user_passes_test(is_admin)
 def get_video_upload_progress(request, video_id):
     """
-    API pour récupérer la progression de l'upload d'une vidéo
+    API pour récupérer la progression de l\'upload d\'une vidéo
     """
     video = get_object_or_404(Video, id=video_id)
     try:
@@ -1235,7 +1270,7 @@ def get_video_upload_progress(request, video_id):
             'time_elapsed': video_upload.time_elapsed
         })
     except VideoUpload.DoesNotExist:
-        # Création d'un objet VideoUpload si nécessaire
+        # Création d\'un objet VideoUpload si nécessaire
         video_upload = VideoUpload.objects.create(video=video, status='pending')
         return JsonResponse({
             'status': video_upload.status,
@@ -1271,6 +1306,11 @@ def get_r2_client():
         region_name=settings.AWS_S3_REGION_NAME
     )
 
+
+
+
+
+
 @require_http_methods(["GET"])
 @login_required
 def generate_presigned_url(request):
@@ -1278,6 +1318,10 @@ def generate_presigned_url(request):
     Generate a presigned URL for direct upload to Cloudflare R2
     """
     try:
+        # Vérifier les permissions admin
+        if not request.user.is_staff and not request.user.is_superuser:
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
         # Get filename from query parameters
         filename = request.GET.get('filename')
         content_type = request.GET.get('type', 'video')  # 'video' or 'photo'
@@ -1285,8 +1329,13 @@ def generate_presigned_url(request):
         if not filename:
             return JsonResponse({'error': 'Filename is required'}, status=400)
         
+        # Valider l\'extension du fichier
+        allowed_extensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.jpg', '.jpeg', '.png', '.gif']
+        file_extension = os.path.splitext(filename)[1].lower()
+        if file_extension not in allowed_extensions:
+            return JsonResponse({'error': 'File type not allowed'}, status=400)
+        
         # Generate unique key for the file
-        file_extension = os.path.splitext(filename)[1]
         folder = 'videos' if content_type == 'video' else 'photos'
         unique_key = f"{folder}/{uuid.uuid4()}{file_extension}"
         
@@ -1318,10 +1367,15 @@ def generate_presigned_url(request):
         
     except ClientError as e:
         logger.error(f"R2 Client Error: {str(e)}")
-        return JsonResponse({'error': f'Failed to generate presigned URL: {str(e)}'}, status=500)
+        return JsonResponse({'error': 'Failed to generate upload URL'}, status=500)
     except Exception as e:
         logger.error(f"Unexpected Error: {str(e)}")
-        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+
+
+
+
+
 
 @require_http_methods(["POST"])
 @login_required
@@ -1463,3 +1517,53 @@ def upload_video_page(request):
     Render the upload video page
     """
     return render(request, 'administa/direct_upload.html')
+
+@require_http_methods(["POST"])
+@login_required
+@csrf_exempt
+def edit_video_metadata(request):
+    """
+    Update video metadata after a potential new file upload.
+    """
+    try:
+        data = json.loads(request.body)
+        video_id = data.get('video_id')
+        if not video_id:
+            return JsonResponse({'error': 'Video ID is required'}, status=400)
+
+        video = get_object_or_404(Video, id=video_id)
+
+        # Update fields
+        video.title = data.get('title', video.title)
+        video.description = data.get('description', video.description)
+        video.duration = data.get('duration', video.duration)
+        video.release_year = data.get('release_year', video.release_year)
+        video.is_premium = data.get('is_premium', video.is_premium)
+
+        # If a new file was uploaded, update the URL and key
+        if 'public_url' in data and data['public_url']:
+            video.video_url = data['public_url']
+        if 'file_key' in data and data['file_key']:
+            video.file_key = data['file_key']
+        
+        video.save()
+
+        # Update M2M relationships
+        if 'types' in data:
+            video.types.set(data['types'])
+        if 'genre' in data:
+            video.genre.set(data['genre'])
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Video metadata updated successfully',
+            'video_id': video.id
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Video.DoesNotExist:
+        return JsonResponse({'error': 'Video not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Failed to update video metadata: {str(e)}")
+        return JsonResponse({'error': f'Failed to update video metadata: {str(e)}'}, status=500)

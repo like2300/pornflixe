@@ -191,7 +191,7 @@ class MediaType(models.Model):
  
 class Video(models.Model):
     title = models.CharField(max_length=255)
-    cover_film = models.ImageField(upload_to='films/')
+    cover_film = models.ImageField(upload_to='films/', blank=True, null=True)  # Make it optional
     description = models.TextField(blank=True, null=True)
     video = models.FileField(upload_to='videos/film/', blank=True, null=True)  # For backward compatibility
     video_url = models.URLField(blank=True, null=True)  # For R2 direct uploads
@@ -206,6 +206,11 @@ class Video(models.Model):
     # Champs ajoutés pour la publication
     publish_date = models.DateTimeField(blank=True, null=True, verbose_name="Date de publication")
     is_featured = models.BooleanField(default=False, verbose_name="Mis en avant")
+
+    # Champs manquants
+    duration = models.PositiveIntegerField(blank=True, null=True, help_text="Durée de la vidéo en secondes")
+    release_year = models.PositiveIntegerField(blank=True, null=True, help_text="Année de sortie de la vidéo")
+    is_premium = models.BooleanField(default=False, verbose_name="Contenu premium")
 
     def __str__(self):
         return self.title
@@ -256,6 +261,18 @@ class Video(models.Model):
     def video_file_url(self):
         """Return the video URL, preferring the direct R2 URL if available"""
         return self.video_url or (self.video.url if self.video else None)
+        
+    @property
+    def cover_image_url(self):
+        """Return the cover image URL, preferring the direct R2 URL if available"""
+        # If cover_film is a URL (from R2), return it directly
+        if isinstance(self.cover_film, str):
+            return self.cover_film
+        # If cover_film is an ImageFieldFile, return its URL
+        elif self.cover_film:
+            return self.cover_film.url
+        # Return None if no cover image
+        return None
 
 class VideoUpload(models.Model):
     """

@@ -143,7 +143,9 @@
 
         const slides = [
           {% for slide in slides %}
+            {% if slide.film.cover_film %}
             { image: `{{ host }}{{ slide.film.cover_film.url }}`, text: "{{ slide.film.title }}" },
+            {% endif %}
           {% endfor %}
         ];
 

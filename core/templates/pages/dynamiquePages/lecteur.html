@@ -16,14 +16,23 @@
             <div class="w-full lg:w-2/3 space-y-8">
                 <!-- Lecteur vidéo -->
                 <div class="relative md:mt-0 mt-12 rounded-2xl overflow-hidden bg-gray-800/30 backdrop-blur-lg border border-gray-700/50 shadow-2xl aspect-video">
-                    <video
-                        id="my-video"
-                        controls
-                        class="video-js vjs-big-play-centered vjs-fluid w-full h-full"
-                        data-setup='{"fill": true, "responsive": true}'
-                        preload="auto">
-                        <source src="{{ video.video.url }}" type="video/mp4">
-                    </video>
+                    {% if video.video %}
+                        <video
+                            id="my-video"
+                            controls
+                            class="video-js vjs-big-play-centered vjs-fluid w-full h-full"
+                            data-setup='{"fill": true, "responsive": true}'
+                            preload="auto">
+                            <source src="{{ video.video.url }}" type="video/mp4">
+                        </video>
+                    {% else %}
+                        <div class="w-full h-full flex flex-col items-center justify-center bg-gray-900 text-white p-8 text-center">
+                            <i class="material-icons text-6xl text-gray-500 mb-4">videocam_off</i>
+                            <h3 class="text-2xl font-bold mb-2">Vidéo non disponible</h3>
+                            <p class="text-gray-400 mb-4">Cette vidéo n'a pas encore été uploadée ou le fichier est manquant.</p>
+                            <p class="text-gray-500 text-sm">ID de la vidéo: {{ video.id }}</p>
+                        </div>
+                    {% endif %}
                 </div>
 
                 <!-- Titre et interactions -->
@@ -96,10 +105,16 @@
                             {% if rec.id %}
                             <a href="{% url 'video_player' rec.id %}" class="group flex gap-3">
                                 <div class="flex-shrink-0 relative w-32 h-20 rounded-lg overflow-hidden">
-                                    <img src="{{ rec.cover_film.url }}" alt="{{ rec.title }}" 
-                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200">
+                                    {% if rec.cover_film %}
+                                        <img src="{{ rec.cover_film.url }}" alt="{{ rec.title }}" 
+                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200">
+                                    {% else %}
+                                        <div class="bg-gray-700 w-full h-full flex items-center justify-center">
+                                            <i class="material-icons text-gray-500">image</i>
+                                        </div>
+                                    {% endif %}
                                     <div class="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 rounded">
-                                        {{ rec.duration }}
+                                        {{ rec.types.first.name  }}
                                     </div>
                                 </div>
                                 <div>
@@ -407,7 +422,9 @@
             .then(data => {
                 if (data.is_subscribed) {
                     isSubscribed = true;
+                    {% if video.video %}
                     player.src({ type: 'video/mp4', src: '{{ video.video.url }}' });
+                    {% endif %}
                     player.load();
                 }
             });

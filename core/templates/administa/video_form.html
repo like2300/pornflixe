@@ -5,6 +5,32 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
+
+  <!-- Modal de progression -->
+  <div id="uploadOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md">
+      <h2 id="uploadTitle" class="text-xl font-bold mb-4">Upload en cours</h2>
+      <div class="space-y-4">
+        <div id="uploadStatus" class="text-sm text-gray-600">Préparation...</div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div id="uploadProgressBar" class="bg-indigo-600 h-2.5 rounded-full" style="width: 0%"></div>
+        </div>
+        <div id="uploadPercentage" class="text-sm font-medium">0%</div>
+        <div class="text-xs text-gray-500 space-y-1">
+          <div>Vitesse: <span id="uploadSpeed">--</span></div>
+          <div>Temps restant: <span id="uploadTime">--</span></div>
+          <div id="uploadDetails">0 / 0 MB</div>
+        </div>
+      </div>
+      <div id="uploadSuccessMessage" class="mt-4 p-3 bg-green-100 text-green-700 rounded-lg hidden">
+        Upload réussi! Redirection...
+      </div>
+      <div id="uploadErrorMessage" class="mt-4 p-3 bg-red-100 text-red-700 rounded-lg hidden">
+        Erreur: <span id="uploadErrorText"></span>
+      </div>
+    </div>
+  </div>
+
   <div class="bg-white rounded-xl shadow-sm border border-gray-100">
     <div class="px-6 py-4 border-b border-gray-200">
       <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
@@ -13,18 +39,20 @@
     <div class="p-6">
       <form method="post" enctype="multipart/form-data" class="space-y-8" id="videoForm">
         {% csrf_token %}
+        <input type="hidden" name="video_url" id="videoUrl">
+        <input type="hidden" name="file_key" id="fileKey">
         
         <!-- Basic Information -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="space-y-2">
             <label class="block text-sm font-semibold text-gray-700">Titre *</label>
-            <input type="text" name="title" value="{{ form.title.value|default:'' }}" required
+            <input type="text" name="title" id="videoTitle" value="{{ form.title.value|default:'' }}" required
                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">
           </div>
           
           <div class="space-y-2">
             <label class="block text-sm font-semibold text-gray-700">Types</label>
-            <select name="types" multiple 
+            <select name="types" id="videoTypes" multiple 
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">
               {% for choice in form.types.field.choices %}
                 <option value="{{ choice.0 }}" {% if choice.0 in form.types.value %}selected{% endif %}>{{ choice.1 }}</option>
@@ -35,7 +63,7 @@
         
         <div class="space-y-2">
           <label class="block text-sm font-semibold text-gray-700">Description</label>
-          <textarea name="description" rows="4" 
+          <textarea name="description" id="videoDescription" rows="4" 
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">{{ form.description.value|default:'' }}</textarea>
         </div>
         
@@ -43,73 +71,27 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="space-y-2">
             <label class="block text-sm font-semibold text-gray-700">Image de couverture</label>
-            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
-              <div class="space-y-1 text-center">
-                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                <div class="flex text-sm text-gray-600">
-                  <label class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500">
-                    <span>Uploader un fichier</span>
-                    <input type="file" name="cover_film" class="sr-only" accept="image/*">
-                  </label>
-                  <p class="pl-1">ou glisser-déposer</p>
-                </div>
-                <p class="text-xs text-gray-500">PNG, JPG, GIF jusqu'à 10MB</p>
-              </div>
-            </div>
+            <input type="file" name="cover_film" class="w-full" accept="image/*">
+            <p class="text-xs text-gray-500 mt-1">L'image de couverture sera gérée séparément après l'upload de la vidéo.</p>
           </div>
           
           <div class="space-y-2">
             <label class="block text-sm font-semibold text-gray-700">Fichier vidéo *</label>
-            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
-              <div class="space-y-1 text-center">
-                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                  <path d="M18 24v-8a2 2 0 012-2h12l6 6v10a2 2 0 01-2 2H20a2 2 0 01-2-2z" />
-                  <path d="M30 24l-6 6-6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                <div class="flex text-sm text-gray-600">
-                  <label class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500">
-                    <span>Uploader une vidéo</span>
-                    <input type="file" name="video" id="videoFileInput" class="sr-only" accept="video/*" required>
-                  </label>
-                  <p class="pl-1">ou glisser-déposer</p>
-                </div>
-                <p class="text-xs text-gray-500">MP4, AVI, MOV jusqu'à 100MB</p>
-              </div>
-            </div>
+            <input type="file" name="video" id="videoFileInput" class="w-full" accept="video/*" required>
           </div>
-        </div>
-        
-        <!-- Progress bar for video upload -->
-        <div id="uploadProgress" class="hidden">
-          <div class="mb-4">
-            <div class="flex justify-between text-sm font-medium text-gray-700 mb-2">
-              <span id="progressStatus">Initialisation de l'upload...</span>
-              <span id="progressText">0%</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-3">
-              <div id="progressBar" class="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
-            </div>
-            <div class="flex justify-between text-xs text-gray-500 mt-2">
-              <span id="progressSpeed">0 MB/s</span>
-              <span id="progressTimeRemaining">--</span>
-            </div>
-          </div>
-          <div class="text-center text-sm text-gray-600" id="progressDetails"></div>
         </div>
         
         <!-- Additional Fields -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="space-y-2">
-            <label class="block text-sm font-semibold text-gray-700">Durée (minutes)</label>
-            <input type="number" name="duration" value="{{ form.duration.value|default:'' }}" min="1"
+            <label class="block text-sm font-semibold text-gray-700">Durée (secondes)</label>
+            <input type="number" name="duration" id="videoDuration" value="{{ form.duration.value|default:'' }}" min="1"
                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">
           </div>
           
           <div class="space-y-2">
             <label class="block text-sm font-semibold text-gray-700">Année de sortie</label>
-            <input type="number" name="release_year" value="{{ form.release_year.value|default:'' }}" min="1900" max="2100"
+            <input type="number" name="release_year" id="videoReleaseYear" value="{{ form.release_year.value|default:'' }}" min="1900" max="2100"
                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">
           </div>
         </div>
@@ -117,19 +99,33 @@
         <!-- Genres -->
         <div class="space-y-2">
           <label class="block text-sm font-semibold text-gray-700">Genres</label>
-          <select name="genre" multiple 
+          <select name="genre" id="videoGenres" multiple 
                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">
             {% for choice in form.genre.field.choices %}
               <option value="{{ choice.0 }}" {% if choice.0 in form.genre.value %}selected{% endif %}>{{ choice.1 }}</option>
             {% endfor %}
           </select>
         </div>
+
+        <!-- Publication Fields -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-gray-700">Date de publication</label>
+                <input type="datetime-local" name="publish_date" value="{{ form.publish_date.value|date:'Y-m-d\TH:i' }}"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">
+            </div>
+            <div class="flex items-center space-x-3 pt-6">
+                <input type="checkbox" name="is_featured" id="videoIsFeatured" {% if form.is_featured.value %}checked{% endif %}
+                       class="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-600">
+                <label for="videoIsFeatured" class="block text-sm font-semibold text-gray-700">Mis en avant</label>
+            </div>
+        </div>
         
         <!-- Premium Content -->
         <div class="flex items-center space-x-3">
-          <input type="checkbox" name="is_premium" id="is_premium" {% if form.is_premium.value %}checked{% endif %}
+          <input type="checkbox" name="is_premium" id="videoIsPremium" {% if form.is_premium.value %}checked{% endif %}
                  class="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-          <label for="is_premium" class="block text-sm font-semibold text-gray-700">Contenu premium</label>
+          <label for="videoIsPremium" class="block text-sm font-semibold text-gray-700">Contenu premium</label>
         </div>
         
         <!-- Actions -->
@@ -137,7 +133,7 @@
           <a href="{% url 'admin_videos' %}" class="px-6 py-3 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors duration-200">
             Annuler
           </a>
-          <button type="submit" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 border border-transparent rounded-lg text-sm font-semibold text-white hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+          <button type="submit" id="uploadButton" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 border border-transparent rounded-lg text-sm font-semibold text-white hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
             Enregistrer
           </button>
         </div>
@@ -145,180 +141,311 @@
     </div>
   </div>
 </div>
-{% endblock %}
 
 {% block extra_js %}
 <script>
-  document.getElementById('videoForm').addEventListener('submit', function(e) {
-    const videoInput = document.getElementById('videoFileInput');
-    if (videoInput && videoInput.files.length > 0) {
-      e.preventDefault();
-      uploadVideoToR2(videoInput.files[0]);
+class DirectUploader {
+    constructor(options) {
+        this.options = options;
+        this.file = null;
+        this.startTime = null;
+        this.form = document.getElementById(options.formId);
+
+        this.ui = {
+            fileInput: document.getElementById(options.fileInputId),
+            uploadButton: document.getElementById(options.uploadButtonId),
+            overlay: document.getElementById('uploadOverlay'),
+            title: document.getElementById('uploadTitle'),
+            status: document.getElementById('uploadStatus'),
+            percentage: document.getElementById('uploadPercentage'),
+            progressBar: document.getElementById('uploadProgressBar'),
+            speed: document.getElementById('uploadSpeed'),
+            time: document.getElementById('uploadTime'),
+            details: document.getElementById('uploadDetails'),
+            successMessage: document.getElementById('uploadSuccessMessage'),
+            errorMessage: document.getElementById('uploadErrorMessage'),
+            errorText: document.getElementById('uploadErrorText'),
+            videoUrlInput: document.getElementById('videoUrl'),
+            fileKeyInput: document.getElementById('fileKey'),
+        };
+
+        this.init();
     }
-  });
-  
-  async function uploadVideoToR2(file) {
-    const uploadProgress = document.getElementById('uploadProgress');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-    const progressStatus = document.getElementById('progressStatus');
-    const progressSpeed = document.getElementById('progressSpeed');
-    const progressTimeRemaining = document.getElementById('progressTimeRemaining');
-    const progressDetails = document.getElementById('progressDetails');
-    
-    uploadProgress.classList.remove('hidden');
-    progressStatus.textContent = 'Préparation de l\\'upload...';
-    
-    try {
-      // Get form data
-      const title = document.querySelector('input[name="title"]').value || file.name;
-      const description = document.querySelector('textarea[name="description"]').value || '';
-      const duration = document.querySelector('input[name="duration"]').value || '';
-      const releaseYear = document.querySelector('input[name="release_year"]').value || '';
-      const isPremium = document.querySelector('input[name="is_premium"]').checked;
-      const types = Array.from(document.querySelector('select[name="types"]').selectedOptions).map(opt => opt.value);
-      const genres = Array.from(document.querySelector('select[name="genre"]').selectedOptions).map(opt => opt.value);
-      
-      // Step 1: Get presigned URL from Django
-      progressStatus.textContent = 'Génération de l\\'URL de téléchargement...';
-      const presignedResponse = await fetch(`/api/generate-presigned-url/?filename=${encodeURIComponent(file.name)}&type=video`);
-      const presignedData = await presignedResponse.json();
-      
-      if (!presignedResponse.ok) {
-        throw new Error(presignedData.error || 'Failed to generate presigned URL');
-      }
-      
-      // Step 2: Upload file directly to R2 with progress tracking
-      progressStatus.textContent = 'Upload en cours...';
-      
-      return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        
-        // Track upload progress
-        xhr.upload.addEventListener('progress', function(event) {
-          if (event.lengthComputable) {
-            const percentComplete = Math.round((event.loaded / event.total) * 100);
-            const loadedMB = (event.loaded / (1024 * 1024)).toFixed(2);
-            const totalMB = (event.total / (1024 * 1024)).toFixed(2);
-            const speedMBs = ((event.loaded / (1024 * 1024)) / ((event.timeStamp || Date.now()) / 1000)).toFixed(2);
-            
-            progressBar.style.width = percentComplete + '%';
-            progressText.textContent = percentComplete + '%';
-            progressSpeed.textContent = speedMBs + ' MB/s';
-            progressDetails.textContent = loadedMB + ' / ' + totalMB + ' MB';
-            
-            // Estimate time remaining
-            if (event.loaded > 0) {
-              const timeElapsed = (event.timeStamp || Date.now()) / 1000;
-              const estimatedTotalTime = (timeElapsed / event.loaded) * event.total;
-              const timeRemaining = estimatedTotalTime - timeElapsed;
-              const minutes = Math.floor(timeRemaining / 60);
-              const seconds = Math.floor(timeRemaining % 60);
-              progressTimeRemaining.textContent = minutes + 'm ' + seconds + 's restantes';
+
+    init() {
+        this.ui.fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // Vérification de la taille du fichier (max 2GB)
+                if (file.size > 2 * 1024 * 1024 * 1024) {
+                    alert('Le fichier est trop volumineux. Taille maximale : 2GB');
+                    this.ui.fileInput.value = '';
+                    return;
+                }
+                // Vérification du type de fichier
+                if (!file.type.startsWith('video/')) {
+                    alert('Seuls les fichiers vidéo sont acceptés');
+                    this.ui.fileInput.value = '';
+                    return;
+                }
+                this.file = file;
             }
-          }
         });
+        this.form.addEventListener('submit', this.handleSubmit.bind(this));
+    }
+
+    showModal(title) {
+        this.ui.title.textContent = title;
+        this.ui.overlay.style.display = 'flex';
+        this.ui.successMessage.style.display = 'none';
+        this.ui.errorMessage.style.display = 'none';
+        this.updateProgress(0, 0, 0);
+    }
+
+    hideModal() {
+        this.ui.overlay.style.display = 'none';
+    }
+
+    showError(message) {
+        this.ui.status.textContent = 'Erreur';
+        this.ui.errorText.textContent = message;
+        this.ui.errorMessage.style.display = 'block';
+        this.ui.successMessage.style.display = 'none';
+        this.ui.uploadButton.disabled = false;
+        setTimeout(() => this.hideModal(), 5000);
+    }
+
+    showSuccessAndRedirect(redirectUrl) {
+        this.ui.status.textContent = 'Terminé !';
+        this.ui.successMessage.style.display = 'block';
+        this.ui.errorMessage.style.display = 'none';
+        this.ui.uploadButton.disabled = false;
         
-        // Handle completion
-        xhr.addEventListener('load', async function() {
-          if (xhr.status === 200) {
-            progressStatus.textContent = 'Enregistrement des métadonnées...';
-            
-            // Step 3: Save metadata to Django
+        // Mettre à jour les champs cachés
+        if (this.ui.videoUrlInput && this.ui.fileKeyInput) {
+            this.ui.videoUrlInput.value = this.publicUrl || '';
+            this.ui.fileKeyInput.value = this.fileKey || '';
+        }
+        
+        // Nettoyer le formulaire et rediriger
+        setTimeout(() => {
+            window.location.href = redirectUrl;
+        }, 2000);
+    }
+
+    updateProgress(loaded, total, elapsed) {
+        if (total === 0) return;
+        const percent = Math.round((loaded / total) * 100);
+        const speed = elapsed > 0 ? loaded / (1024 * 1024) / elapsed : 0;
+        const remainingBytes = total - loaded;
+        const remainingTime = speed > 0 ? (remainingBytes / (speed * 1024 * 1024)) : 0;
+
+        this.ui.percentage.textContent = `${percent}%`;
+        this.ui.progressBar.style.width = `${percent}%`;
+        this.ui.speed.textContent = `${speed.toFixed(2)} MB/s`;
+        this.ui.details.textContent = `${(loaded / 1024 / 1024).toFixed(2)} / ${(total / 1024 / 1024).toFixed(2)} MB`;
+        
+        if (isFinite(remainingTime) && remainingTime > 0) {
+            const minutes = Math.floor(remainingTime / 60);
+            const seconds = Math.floor(remainingTime % 60);
+            this.ui.time.textContent = `${minutes}m ${seconds}s restantes`;
+        } else {
+            this.ui.time.textContent = '--';
+        }
+    }
+
+    async handleSubmit(event) {
+        event.preventDefault(); // Empêcher la soumission standard du formulaire
+
+        // If not editing, a file is required
+        if (!this.options.videoId && !this.file) {
+            alert('Veuillez sélectionner un fichier à uploader.');
+            return;
+        }
+
+        // Validation du formulaire
+        const title = document.getElementById('videoTitle').value;
+        if (!title || !title.trim()) {
+            alert('Veuillez saisir un titre pour la vidéo.');
+            return;
+        }
+
+        this.showModal(`Sauvegarde de ${this.options.contentType}...`);
+        this.ui.uploadButton.disabled = true;
+
+        let fileKey = this.options.fileKey || null;
+        let publicUrl = this.options.publicUrl || null;
+
+        try {
+            // 1. Upload file if a new one is selected
+            if (this.file) {
+                this.ui.status.textContent = 'Préparation de l\'upload...';
+                const presignedUrlResponse = await fetch(`/api/generate-presigned-url/?filename=${encodeURIComponent(this.file.name)}&type=${this.options.contentType.toLowerCase()}`, {
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                
+                if (!presignedUrlResponse.ok) {
+                    const errorData = await presignedUrlResponse.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Impossible de générer l\'URL de téléversement.');
+                }
+                
+                const presignedData = await presignedUrlResponse.json();
+
+                // 2. Upload to R2
+                this.ui.status.textContent = 'Téléversement en cours...';
+                await this.uploadFile(presignedData.presigned_url);
+                fileKey = presignedData.file_key;
+                publicUrl = presignedData.public_url;
+            }
+
+            // 3. Save Metadata
+            this.ui.status.textContent = 'Enregistrement des informations...';
             try {
-              const metadataResponse = await fetch('/api/save-video-metadata/', {
+                const metadata = this.options.getMetadata();
+                metadata.file_key = fileKey;
+                metadata.public_url = publicUrl;
+                metadata.video_url = publicUrl; // Ajout pour la compatibilité
+                
+                // Add videoId if we are editing
+                if (this.options.videoId) {
+                    metadata.video_id = this.options.videoId;
+                }
+
+                // Sauvegarde des valeurs pour une utilisation ultérieure
+                this.fileKey = fileKey;
+                this.publicUrl = publicUrl;
+            } catch (validationError) {
+                throw new Error(`Validation : ${validationError.message}`);
+            }
+
+            const metadataResponse = await fetch(this.options.metadataUrl, {
                 method: 'POST',
                 headers: {
-                  'Content-Type': 'application/json',
-                  'X-CSRFToken': getCSRFToken()
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                 },
-                body: JSON.stringify({
-                  title: title,
-                  description: description,
-                  duration: duration,
-                  release_year: releaseYear,
-                  is_premium: isPremium,
-                  types: types,
-                  genre: genres,
-                  file_key: presignedData.file_key,
-                  public_url: presignedData.public_url
-                })
-              });
-              
-              const metadataData = await metadataResponse.json();
-              
-              if (!metadataResponse.ok) {
-                throw new Error(metadataData.error || 'Failed to save metadata');
-              }
-              
-              progressStatus.textContent = 'Upload terminé avec succès!';
-              progressText.textContent = '100%';
-              progressBar.style.width = '100%';
-              progressDetails.textContent = 'Vidéo enregistrée avec succès';
-              
-              // Show success message and redirect
-              setTimeout(() => {
-                window.location.href = '{% url "admin_videos" %}';
-              }, 2000);
-              
-              resolve();
-              
-            } catch (error) {
-              reject(new Error('Erreur lors de l\\'enregistrement des métadonnées: ' + error.message));
+                body: JSON.stringify(metadata)
+            });
+
+            if (!metadataResponse.ok) {
+                const errorData = await metadataResponse.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Impossible d\'enregistrer les métadonnées.');
             }
-          } else {
-            reject(new Error('Upload failed with status ' + xhr.status));
-          }
-        });
-        
-        // Handle network errors
-        xhr.addEventListener('error', function() {
-          reject(new Error('Erreur réseau pendant l\\'upload. Veuillez vérifier votre connexion internet.'));
-        });
-        
-        // Handle timeout
-        xhr.addEventListener('timeout', function() {
-          reject(new Error('Timeout pendant l\\'upload. Veuillez réessayer.'));
-        });
-        
-        // Handle abort
-        xhr.addEventListener('abort', function() {
-          reject(new Error('Upload annulé par l\\'utilisateur.'));
-        });
-        
-        // Configure and send request
-        xhr.open('PUT', presignedData.presigned_url, true);
-        xhr.timeout = 0; // Disable timeout for large files
-        xhr.setRequestHeader('Content-Type', file.type);
-        
-        try {
-          xhr.send(file);
-        } catch (sendError) {
-          reject(new Error('Erreur lors de l\\'envoi du fichier: ' + sendError.message));
+            
+            this.showSuccessAndRedirect(this.options.redirectUrl);
+
+        } catch (error) {
+            console.error('Upload failed:', error);
+            this.showError(error.message);
+        } finally {
+            this.ui.uploadButton.disabled = false;
         }
-      });
-      
-    } catch (error) {
-      progressStatus.textContent = 'Erreur: ' + error.message;
-      progressStatus.classList.add('text-red-600');
-      console.error('Upload error:', error);
     }
-  }
-  
-  function getCSRFToken() {
-    // Get CSRF token from cookie
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, 10) === ('csrftoken=')) {
-          cookieValue = decodeURIComponent(cookie.substring(10));
-          break;
+
+    async uploadFile(url) {
+        const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+        return new Promise(async (resolve, reject) => {
+            try {
+                this.startTime = Date.now();
+                let start = 0;
+                let uploaded = 0;
+                
+                while (start < this.file.size) {
+                    const end = Math.min(start + CHUNK_SIZE, this.file.size);
+                    const chunk = this.file.slice(start, end);
+                    
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('PUT', url, true);
+                    xhr.setRequestHeader('Content-Type', this.file.type || 'application/octet-stream');
+                    xhr.setRequestHeader('Content-Range', `bytes ${start}-${end-1}/${this.file.size}`);
+                    
+                    await new Promise((chunkResolve, chunkReject) => {
+                        xhr.upload.onprogress = (event) => {
+                            if (event.lengthComputable) {
+                                const currentProgress = uploaded + event.loaded;
+                                const elapsed = (Date.now() - this.startTime) / 1000;
+                                this.updateProgress(currentProgress, this.file.size, elapsed);
+                            }
+                        };
+                        
+                        xhr.onload = () => {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                uploaded += chunk.size;
+                                chunkResolve();
+                            } else {
+                                chunkReject(new Error(`Chunk upload failed with status ${xhr.status}`));
+                            }
+                        };
+                        
+                        xhr.onerror = () => chunkReject(new Error('Network error during chunk upload'));
+                        xhr.onabort = () => chunkReject(new Error('Chunk upload aborted'));
+                        
+                        xhr.send(chunk);
+                    });
+                    
+                    start = end;
+                }
+                
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const videoDataElement = document.getElementById('video-data');
+    const videoData = videoDataElement ? JSON.parse(videoDataElement.textContent) : null;
+    const isEditing = !!videoData;
+
+    new DirectUploader({
+        formId: 'videoForm',
+        fileInputId: 'videoFileInput',
+        uploadButtonId: 'uploadButton',
+        contentType: 'Video',
+        metadataUrl: isEditing ? `/api/edit-video-metadata/` : '/api/save-video-metadata/',
+        redirectUrl: '{% url "admin_videos" %}',
+        videoId: isEditing ? videoData.id : null,
+        fileKey: isEditing ? videoData.file_key : null,
+        publicUrl: isEditing ? videoData.video_url : null,
+        getMetadata: () => {
+            const formData = {
+                title: document.getElementById('videoTitle').value.trim(),
+                description: document.getElementById('videoDescription').value.trim(),
+                duration: parseInt(document.getElementById('videoDuration').value) || 0,
+                release_year: parseInt(document.getElementById('videoReleaseYear').value) || new Date().getFullYear(),
+                is_premium: document.getElementById('videoIsPremium').checked,
+                is_featured: document.getElementById('videoIsFeatured')?.checked || false,
+                publish_date: document.querySelector('input[name="publish_date"]')?.value || new Date().toISOString(),
+                types: Array.from(document.getElementById('videoTypes').selectedOptions).map(opt => opt.value),
+                genre: Array.from(document.getElementById('videoGenres').selectedOptions).map(opt => opt.value),
+            };
+
+            // Validation
+            if (!formData.title) {
+                throw new Error('Le titre est requis');
+            }
+            if (!formData.duration && !this.options.videoId) {
+                throw new Error('La durée est requise');
+            }
+            if (formData.duration < 0) {
+                throw new Error('La durée doit être positive');
+            }
+            if (formData.release_year < 1900 || formData.release_year > 2100) {
+                throw new Error('L\'année de sortie doit être entre 1900 et 2100');
+            }
+
+            return formData;
         }
-      }
-    }
-    return cookieValue;
-  }
+    });
+});
 </script>
 {% endblock %}
+{% if video %}
+  {{ video|json_script:"video-data" }}
+{% endif %}
+{% endblock %}
+

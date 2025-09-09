@@ -98,7 +98,7 @@
                 <video 
                     id="media-element"
                     class="w-full h-auto rounded-2xl object-cover cursor-grab active:cursor-grabbing"
-                    poster="{{ content.cover_film.url }}"
+                    {% if content.cover_film %}poster="{{ content.cover_film.url }}"{% endif %}
                     controls
                 >
                     <source src="{{ content.video.url }}" type="video/mp4">

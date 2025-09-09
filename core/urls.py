@@ -86,6 +86,7 @@ urlpatterns = [
      # ... existing URLs ...
     path('api/generate-presigned-url/',  generate_presigned_url, name='generate_presigned_url'),
     path('api/save-video-metadata/',  save_video_metadata, name='save_video_metadata'),
+    path('api/edit-video-metadata/', edit_video_metadata, name='edit_video_metadata'),
     path('api/save-photo-metadata/',  save_photo_metadata, name='save_photo_metadata'),
     path('api/proxy-upload-to-r2/',  proxy_upload_to_r2, name='proxy_upload_to_r2'),
     path('upload-direct/', upload_video_page, name='upload_video_page'),

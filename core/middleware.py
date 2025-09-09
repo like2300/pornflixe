@@ -41,3 +41,19 @@ class PayPalDebugMiddleware:
             logger = logging.getLogger('paypal')
             logger.debug(f"PayPal Request:\n{pprint.pformat(request.POST)}")
         return self.get_response(request)
+
+
+import time
+
+class UploadTimeoutMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Vérifier si c'est une requête d'upload
+        if request.method == 'POST' and any(key in request.path for key in ['/api/', '/upload/']):
+            # Définir un timeout long pour les uploads
+            request.upload_handlers[0].timeout = 3600  # 1 heure
+        
+        response = self.get_response(request)
+        return response
