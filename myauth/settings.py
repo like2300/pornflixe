@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import tempfile
 from decouple import config, Csv
 from storages.backends.s3boto3 import S3Boto3Storage
 
@@ -55,7 +56,8 @@ MIDDLEWARE = [
 ]
 
 FILE_UPLOAD_HANDLERS = [
-    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
+    'django.core.files.uploadhandler.MemoryFileUploadHandler',  # Petits fichiers
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',  # Gros fichiers
 ]
 
 # === URLS & WSGI ===
@@ -141,7 +143,8 @@ AWS_S3_OBJECT_PARAMETERS = {
 }
 AWS_S3_USE_SSL = True
 AWS_S3_VERIFY = True
-AWS_S3_ADDRESSING_STYLE = "virtual"
+AWS_S3_ADDRESSING_STYLE = "path"  # Changé pour éviter les problèmes
+AWS_S3_USING_HTTPS = True  # Explicitement activé
 
 # Configuration du stockage S3 pour les fichiers média
 class MediaStorage(S3Boto3Storage):
@@ -198,17 +201,21 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Augmentez la taille maximale des uploads (2GB)
-DATA_UPLOAD_MAX_MEMORY_SIZE = 2147483648  # 2GB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 2147483648  # 2GB
+# Taille maximale d'upload (100MB)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
 
 # Configuration pour les uploads
 FILE_UPLOAD_PERMISSIONS = 0o644
 FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
 FILE_UPLOAD_HANDLERS = [
-    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
+    'django.core.files.uploadhandler.MemoryFileUploadHandler',  # Petits fichiers
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',  # Gros fichiers
 ]
 FILE_UPLOAD_TEMP_DIR = None  # Utilisera le répertoire temporaire du système
+
+# Timeout spécifique pour les uploads
+UPLOAD_TIMEOUT = 300  # 5 minutes
 
 # Configuration pour les requêtes longues
 REQUEST_TIMEOUT = 7200  # 2 heures en secondes
@@ -296,6 +303,16 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        'django.file_upload': {
+            'handlers': ['console', 'file'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
     },
 }
 
@@ -306,3 +323,16 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+
+# === FONCTIONS D'AIDE ===
+def verify_temp_directory():
+    """Vérifie les permissions du dossier temporaire"""
+    try:
+        temp_dir = tempfile.gettempdir()
+        if not os.access(temp_dir, os.W_OK):
+            raise RuntimeError(f"Dossier temporaire inaccessible en écriture : {temp_dir}")
+    except Exception as e:
+        print(f"Erreur lors de la vérification du dossier temporaire : {str(e)}")
+
+# Appel de la vérification au démarrage
+verify_temp_directory()

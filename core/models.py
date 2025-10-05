@@ -1,49 +1,35 @@
-from django.db import models 
-from django.contrib.auth.models import User
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.models import ContentType
-from datetime import datetime, timedelta
-from django.utils import timezone
-from django.conf import settings  # Ajoutez cette ligne en haut du fichier
+# models.py
 from django.db import models
+from django.contrib.auth import get_user_model
+from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.db import models
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from datetime import timedelta
-from django.db import models
-from django.contrib.auth import get_user_model
-from django.utils import timezone
+from django.db.models import Count, Q
+from django.conf import settings
+# import user model
+from django.contrib.auth.models import User
+
+# ==============================
+# MODELES DE BASE
+# ==============================
 
 class SubscriptionPlan(models.Model):
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=6, decimal_places=2)
     duration_days = models.PositiveIntegerField(default=30)
     description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True, verbose_name="Plan actif")
     
-    # ✅ Champ ajouté
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name="Plan actif",
-        help_text="Indique si ce plan est disponible à la souscription."
-    )
-
     class Meta:
         verbose_name = "Plan d'abonnement"
         verbose_name_plural = "Plans d'abonnement"
 
     def __str__(self):
         return f"{self.name} - {self.price}€ ({'actif' if self.is_active else 'inactif'})"
-    
 
 
-    
 class Comment(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
@@ -64,10 +50,6 @@ class Comment(models.Model):
             'created_at': self.created_at.isoformat()
         }
 
-from django.db import models
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from datetime import timedelta
 
 class UserSubscription(models.Model):
     user = models.OneToOneField(
@@ -162,7 +144,7 @@ class UserSubscription(models.Model):
             return "désactivé"
         return "actif" if self.is_subscribed else "expiré"
 
-        
+
 class Favorite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
@@ -176,40 +158,39 @@ class Favorite(models.Model):
     def __str__(self):
         return f"{self.user} likes {self.content_object}"
 
+
 class Genre(models.Model):
     name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
 
-class MediaType(models.Model):  
+
+class MediaType(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
 
     def __str__(self):
         return self.name
- 
+
+
 class Video(models.Model):
     title = models.CharField(max_length=255)
-    cover_film = models.ImageField(upload_to='films/', blank=True, null=True)  # Make it optional
+    cover_film = models.ImageField(upload_to='films/', blank=True, null=True)
     description = models.TextField(blank=True, null=True)
-    video = models.FileField(upload_to='videos/film/', blank=True, null=True)  # For backward compatibility
-    video_url = models.URLField(blank=True, null=True)  # For R2 direct uploads
-    file_key = models.CharField(max_length=500, blank=True, null=True)  # R2 file key
+    video = models.FileField(upload_to='videos/film/', blank=True, null=True)
+    video_url = models.URLField(blank=True, null=True)
+    file_key = models.CharField(max_length=500, blank=True, null=True)
     views = models.IntegerField(default=0)
     types = models.ManyToManyField(MediaType, related_name='films')
     created_at = models.DateTimeField(auto_now_add=True)
     genre = models.ManyToManyField(Genre)
     favorites = models.ManyToManyField(User, related_name='favorite_videos', blank=True)
     comments = models.ManyToManyField('Comment', related_name='videos', blank=True)
-
-    # Champs ajoutés pour la publication
     publish_date = models.DateTimeField(blank=True, null=True, verbose_name="Date de publication")
     is_featured = models.BooleanField(default=False, verbose_name="Mis en avant")
-
-    # Champs manquants
-    duration = models.PositiveIntegerField(blank=True, null=True, help_text="Durée de la vidéo en secondes")
-    release_year = models.PositiveIntegerField(blank=True, null=True, help_text="Année de sortie de la vidéo")
+    duration = models.PositiveIntegerField(blank=True, null=True)
+    release_year = models.PositiveIntegerField(blank=True, null=True)
     is_premium = models.BooleanField(default=False, verbose_name="Contenu premium")
 
     def __str__(self):
@@ -217,13 +198,11 @@ class Video(models.Model):
 
     @property
     def is_published(self):
-        """Retourne True si la vidéo est publiée et la date est atteinte"""
-        from django.utils import timezone
+        """Retourne True si la vidéo est publiée et que la date est atteinte"""
         return self.publish_date is not None and self.publish_date <= timezone.now()
 
     def publish(self):
         """Publier maintenant"""
-        from django.utils import timezone
         self.publish_date = timezone.now()
         self.save(update_fields=['publish_date'])
 
@@ -231,12 +210,11 @@ class Video(models.Model):
         """Dépublier"""
         self.publish_date = None
         self.save(update_fields=['publish_date'])
-        
+
     @property
     def is_synced_with_r2(self):
         """Vérifie si la vidéo est synchronisée avec Cloudflare R2"""
-        # For direct uploads, we consider it synced if we have a video_url
-        return bool(self.video_url)
+        return bool(self.video_url or self.file_key)
 
     def get_time_ago(self):
         now = timezone.now()
@@ -261,18 +239,16 @@ class Video(models.Model):
     def video_file_url(self):
         """Return the video URL, preferring the direct R2 URL if available"""
         return self.video_url or (self.video.url if self.video else None)
-        
+
     @property
     def cover_image_url(self):
         """Return the cover image URL, preferring the direct R2 URL if available"""
-        # If cover_film is a URL (from R2), return it directly
         if isinstance(self.cover_film, str):
             return self.cover_film
-        # If cover_film is an ImageFieldFile, return its URL
         elif self.cover_film:
             return self.cover_film.url
-        # Return None if no cover image
         return None
+
 
 class VideoUpload(models.Model):
     """
@@ -324,21 +300,20 @@ class VideoUpload(models.Model):
             'upload_speed', 'time_remaining', 'time_elapsed'
         ])
 
+
 class Photo(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True)
-    image = models.ImageField(upload_to='photos/gallery/', blank=True, null=True)  # For backward compatibility
-    image_url = models.URLField(blank=True, null=True)  # For R2 direct uploads
-    file_key = models.CharField(max_length=500, blank=True, null=True)  # R2 file key
+    image = models.ImageField(upload_to='photos/gallery/', blank=True, null=True)
+    image_url = models.URLField(blank=True, null=True)
+    file_key = models.CharField(max_length=500, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     like = models.ManyToManyField(User, related_name='liked_photos', blank=True)
     types = models.ManyToManyField(MediaType, related_name='photos')
     views = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
-    genre = models.ManyToManyField(Genre) 
+    genre = models.ManyToManyField(Genre)
     favorites = models.ManyToManyField(User, related_name='favorite_photos', blank=True)
     comments = models.ManyToManyField('Comment', related_name='photo', blank=True)
-
-    # Champs ajoutés pour la publication
     publish_date = models.DateTimeField(blank=True, null=True, verbose_name="Date de publication")
     is_featured = models.BooleanField(default=False, verbose_name="Mis en avant")
 
@@ -359,11 +334,10 @@ class Photo(models.Model):
         """Dépublier"""
         self.publish_date = None
         self.save(update_fields=['publish_date'])
-        
+
     @property
     def is_synced_with_r2(self):
         """Vérifie si la photo est synchronisée avec Cloudflare R2"""
-        # For direct uploads, we consider it synced if we have an image_url
         return bool(self.image_url or self.file_key)
 
     def get_time_ago(self):
@@ -390,11 +364,9 @@ class Photo(models.Model):
         """Return the image URL, preferring the direct R2 URL if available"""
         return self.image_url or (self.image.url if self.image else None)
 
+
 class Slide(models.Model):
     film = models.ForeignKey(Video, on_delete=models.CASCADE)
 
     def __str__(self): 
         return self.film.title or "Aucune description"
-
-
-
