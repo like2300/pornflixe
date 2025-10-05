@@ -18,7 +18,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
 ]
 SITE_ID = 1
-
+ 
 # === APPLICATIONS ===
 INSTALLED_APPS = [
     'unfold',
@@ -36,7 +36,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'widget_tweaks',
     'storages',
-    'paypal.standard.ipn',
+    'paypal.standard.ipn',   # Application pour l'IPN
+    'paypal.standard.pdt',   # <-- AJOUTEZ CETTE LIGNE POUR LE PDT
     'background_task'
 ]
 
@@ -235,7 +236,8 @@ PAYPAL_ENV = config('PAYPAL_ENV', default='sandbox')
 PAYPAL_TEST = config('PAYPAL_TEST', default=True, cast=bool)
 PAYPAL_RECEIVER_EMAIL = config('PAYPAL_RECEIVER_EMAIL', default='sb-chiak44231938@business.example.com')
 SUPPORT_EMAIL = "support@pornflixe.com"
-
+# Ajoutez cette ligne avec votre jeton
+PAYPAL_IDENTITY_TOKEN = "L44G9_mNmdcLvK0uzLDp2b6fcwvswyCoBmNl38PfN9RtsxcvZA6FyHN14gG"
 # === SOCIAL LOGIN (GOOGLE) ===
 SOCIALACCOUNT_PROVIDERS = {
     'google': {

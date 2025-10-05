@@ -226,6 +226,7 @@ class ContentDetailView(BaseContextMixin, DetailView):
         return super().get_template_names()
 
 
+
 class VideoPlayerView(BaseContextMixin, DetailView):
     template_name = 'pages/dynamiquePages/lecteur.html'
     model = Video
@@ -235,7 +236,7 @@ class VideoPlayerView(BaseContextMixin, DetailView):
     def get_object(self, queryset=None):
         pk = self.kwargs.get(self.pk_url_kwarg)
         video = get_object_or_404(
-            Video.objects.prefetch_related('types', 'genre', 'favorites'),
+            Video.objects.prefetch_related('types', 'genre'),
             pk=pk
         )
         Video.objects.filter(pk=pk).update(views=F('views') + 1)
@@ -246,17 +247,19 @@ class VideoPlayerView(BaseContextMixin, DetailView):
         video = context['video']
         user = self.request.user
         
+        # Vérification du favori via le modèle générique
+        content_type = ContentType.objects.get_for_model(Video)
         context['is_favorite'] = (
             user.is_authenticated and 
-            video.favorites.filter(id=user.id).exists()
+            Favorite.objects.filter(
+                user=user, 
+                content_type=content_type, 
+                object_id=video.id
+            ).exists()
         )
         
         # Récupération des commentaires via la relation GenericRelation
-        content_type = ContentType.objects.get_for_model(video)
-        context['comments'] = Comment.objects.filter(
-            content_type=content_type,
-            object_id=video.id
-        ).select_related('user').order_by('-created_at')[:20]
+        context['comments'] = video.comments.select_related('user').order_by('-created_at')[:20]
         
         context['recommendations'] = self._get_recommendations(video)
         
@@ -283,7 +286,6 @@ class VideoPlayerView(BaseContextMixin, DetailView):
         except Exception as e:
             logger.error(f"Recommendation error: {str(e)}")
             return Video.objects.exclude(pk=video.pk).order_by('-views')[:6]
-
 
 def get_context_data(self, **kwargs):
     context = super().get_context_data(**kwargs)
@@ -476,8 +478,7 @@ class SubscribeView(LoginRequiredMixin, BaseContextMixin, DetailView):
                 "currency_code": "EUR",
                 "item_name": f"Abonnement {plan.name}",
                 "item_number": plan.id,
-                "invoice": f"{self.request.user.id}-{plan.id}-{timezone.now().timestamp()}",
-                "notify_url": self.request.build_absolute_uri(reverse('paypal-ipn')),
+                "invoice": f"{self.request.user.id}-{plan.id}-{timezone.now().timestamp()}", 
                 "return": self.request.build_absolute_uri(reverse('subscription_success')) + f"?plan_id={plan.id}",
                 "cancel_return": self.request.build_absolute_uri(reverse('subscription_cancel')),
                 "custom": f"{self.request.user.id},{plan.id}",
@@ -485,6 +486,7 @@ class SubscribeView(LoginRequiredMixin, BaseContextMixin, DetailView):
                 "no_note": "1",
                 "lc": "FR",
                 "charset": "utf-8",
+                "rm": "2",
             }
             
             context.update({
@@ -541,32 +543,58 @@ def contact_support(request):
     return render(request, 'support/contact.html')
 
 
+# views.py
+
+from paypal.standard.pdt.models import PayPalPDT
+
 class SuccessView(LoginRequiredMixin, BaseContextMixin, TemplateView):
     template_name = 'pages/dynamiquePages/payement/payment_success.html'
 
     def get(self, request, *args, **kwargs):
-        plan_id = request.GET.get('plan_id')
-        if not plan_id:
-            messages.warning(request, "Aucun plan d'abonnement spécifié")
-            return redirect('subscribe')
-
-        try:
-            plan = SubscriptionPlan.objects.get(id=plan_id)
-        except SubscriptionPlan.DoesNotExist:
-            messages.error(request, "Le plan d'abonnement spécifié n'existe pas")
-            return redirect('subscribe')
-
-        # NE PAS activer l'abonnement ici - attendre la confirmation IPN
-        messages.info(
-            request, 
-            "Votre paiement est en cours de traitement. "
-            "Votre abonnement sera activé automatiquement dès confirmation du paiement."
-        )
+        tx = request.GET.get('tx') # Le token de transaction de PayPal
         
-        return self.render_to_response({
-            'plan': plan,
-            'user': request.user,
-        })
+        if not tx:
+            messages.error(request, "Impossible de vérifier votre paiement. Veuillez nous contacter.")
+            return redirect('subscription_plans')
+
+        pdt = PayPalPDT()
+        pdt.verify(request.GET) # Vérifie les données avec PayPal
+
+        if pdt.is_verified():
+            try:
+                user_id, plan_id = map(int, pdt.custom.split(','))
+                
+                if request.user.id != user_id:
+                    messages.error(request, "Erreur de sécurité.")
+                    return redirect('subscription_plans')
+
+                plan = SubscriptionPlan.objects.get(id=plan_id)
+                if abs(pdt.mc_gross - float(plan.price)) > 0.01:
+                    messages.error(request, "Le montant du paiement ne correspond pas.")
+                    return redirect('subscription_plans')
+
+                # TOUT EST BON -> On active l'abonnement
+                activate_subscription(user_id, plan_id)
+                
+                messages.success(request, f"Paiement confirmé ! Votre abonnement {plan.name} est maintenant actif.")
+                
+                return self.render_to_response({
+                    'plan': plan,
+                    'user': request.user,
+                })
+
+            except (ValueError, SubscriptionPlan.DoesNotExist) as e:
+                logger.error(f"Erreur PDT: {str(e)}")
+                messages.error(request, "Données de paiement invalides.")
+                return redirect('subscription_plans')
+            except Exception as e:
+                logger.exception(f"Erreur activation PDT: {str(e)}")
+                messages.error(request, "Erreur technique lors de l'activation.")
+                return redirect('subscription_plans')
+        else:
+            logger.error(f"Vérification PDT échouée pour {tx}. Raison: {pdt.error}")
+            messages.error(request, "La vérification du paiement a échoué.")
+            return redirect('subscription_plans')
 
 
 

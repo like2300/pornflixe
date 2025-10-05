@@ -9,6 +9,12 @@ from django.conf import settings
 # import user model
 from django.contrib.auth.models import User
 
+# Ajoutez ces lignes avec les autres imports
+from datetime import timedelta
+import logging
+
+logger = logging.getLogger(__name__)
+
 # ==============================
 # MODELES DE BASE
 # ==============================
@@ -83,18 +89,19 @@ class UserSubscription(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.plan.name} (jusqu'au {self.end_date.strftime('%d/%m/%Y')})"
 
+    # Dans la classe UserSubscription
     def save(self, *args, **kwargs):
         """Surcharge de save() pour garantir des dates valides avec timezone"""
+        # Définir end_date si nouvel abonnement
+        if not self.pk and not self.end_date and self.plan:
+            self.end_date = timezone.now() + timedelta(days=self.plan.duration_days)
+
         # Convertir end_date en timezone aware si nécessaire
         if self.end_date and timezone.is_naive(self.end_date):
             self.end_date = timezone.make_aware(self.end_date)
         
-        # Définir end_date si nouvel abonnement
-        if not self.pk and not self.end_date:
-            if self.plan:
-                self.end_date = timezone.now() + timedelta(days=self.plan.duration_days)
-
-                super().save(*args, **kwargs)
+        # L'appel à super() doit TOUJOURS être fait pour sauvegarder l'objet
+        super().save(*args, **kwargs)
 
     def check_status(self):
         """Vérifie et met à jour le statut de l'abonnement"""
@@ -369,4 +376,4 @@ class Slide(models.Model):
     film = models.ForeignKey(Video, on_delete=models.CASCADE)
 
     def __str__(self): 
-        return self.film.title or "Aucune description"
+       return f"Slide pour la vidéo : {self.film.title}"

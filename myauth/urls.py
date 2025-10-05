@@ -24,7 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
     path('', include('core.urls')),
-    path('paypal/', include(paypal_urls)),
+    # path('paypal/', include(paypal_urls)),
 ]
 
 
