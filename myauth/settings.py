@@ -254,7 +254,17 @@ SOCIALACCOUNT_PROVIDERS = {
         }
     }
 }
+# settings.py
 
+# ... autres configurations
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://www.sandbox.paypal.com",
+    # Ajoutez aussi l'URL de production pour quand vous passerez en live
+    "https://www.paypal.com", 
+]
+
+# Ne confondez pas avec ALLOWED_HOSTS qui gère l'URL de votre propre site.
 # Configuration Allauth supplémentaire
 ACCOUNT_EMAIL_REQUIRED = True
 SOCIALACCOUNT_EMAIL_REQUIRED = True
